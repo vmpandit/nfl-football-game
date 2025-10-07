@@ -1,0 +1,3584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NFL Pro Season - Enhanced v4</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #gameContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+            transition: transform 0.1s ease-out;
+        }
+
+        #gameCanvas {
+            background: linear-gradient(to bottom, #2d5016 0%, #1a3a0f 100%);
+            border: 4px solid #fff;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            max-width: 100%;
+            max-height: 90vh;
+            cursor: pointer;
+        }
+
+        .ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .ui-panel {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+            border: 2px solid #3b82f6;
+        }
+
+        .ui-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 25px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .hike-instruction {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            border: 4px solid #fbbf24;
+            padding: 40px 60px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 1500;
+            box-shadow: 0 0 40px rgba(251, 191, 36, 0.8);
+            animation: hikePulse 1.5s infinite;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            text-align: center;
+            pointer-events: none;
+            max-width: 90%;
+        }
+
+        @keyframes hikePulse {
+            0%, 100% { box-shadow: 0 0 40px rgba(251, 191, 36, 0.8); }
+            50% { box-shadow: 0 0 60px rgba(251, 191, 36, 1); }
+        }
+
+        .hike-instruction .main-text {
+            font-size: 32px;
+            color: #fbbf24;
+            margin-bottom: 20px;
+        }
+
+        .hike-instruction .method {
+            font-size: 18px;
+            opacity: 0.95;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+        }
+
+        .hike-instruction .method-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .formation-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1400;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .formation-field {
+            background: linear-gradient(to bottom, #2d5016 0%, #1a3a0f 100%);
+            border: 4px solid #fbbf24;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .formation-title-big {
+            color: #fbbf24;
+            font-size: 36px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+        }
+
+        .formation-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 12px;
+        }
+
+        .formation-section-title {
+            color: #3b82f6;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 8px;
+        }
+
+        .player-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .player-card {
+            background: rgba(59, 130, 246, 0.2);
+            border: 2px solid #3b82f6;
+            border-radius: 10px;
+            padding: 12px;
+            min-width: 120px;
+            text-align: center;
+            color: white;
+        }
+
+        .player-card.offense {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+        }
+
+        .player-card.defense {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+        }
+
+        .player-card.target {
+            background: rgba(251, 191, 36, 0.3);
+            border: 3px solid #fbbf24;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+            animation: targetGlow 1.5s infinite;
+        }
+
+        @keyframes targetGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(251, 191, 36, 0.8); }
+        }
+
+        .player-position {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .player-number {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .player-name {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-top: 3px;
+        }
+
+        .input-group {
+            margin: 20px 0;
+        }
+
+        .input-label {
+            color: white;
+            font-size: 16px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 2px solid #3b82f6;
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .input-field::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .play-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .play-button {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            position: relative;
+        }
+
+        .play-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .play-button.run {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .play-button.pass {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .play-button.special {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        .play-button.defense-coverage {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .play-button.defense-pressure {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .target-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #fbbf24;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .action-button {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .action-button:hover {
+            transform: scale(1.05);
+        }
+
+        .action-button.secondary {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+        }
+
+        .action-button.hard-count {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .team-select {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .team-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            color: white;
+            border: 2px solid transparent;
+        }
+
+        .team-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .team-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .team-record {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .game-info {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            padding: 40px;
+        }
+
+        .loading:after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .difficulty-select {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .difficulty-button {
+            padding: 15px 30px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .difficulty-button:hover {
+            transform: scale(1.05);
+        }
+
+        .difficulty-button.rookie { border-color: #10b981; }
+        .difficulty-button.pro { border-color: #3b82f6; }
+        .difficulty-button.allpro { border-color: #f59e0b; }
+        .difficulty-button.legend { border-color: #ef4444; }
+
+        .special-moves {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+        }
+
+        .move-button {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid white;
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+
+        .move-button:active {
+            transform: scale(0.9);
+        }
+
+        .move-button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .play-clock {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 4px solid #fbbf24;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 998;
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
+        }
+
+        .play-clock.warning {
+            border-color: #ef4444;
+            animation: clockWarning 0.5s infinite;
+        }
+
+        @keyframes clockWarning {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .clock-time {
+            font-size: 36px;
+            font-weight: bold;
+            color: #fbbf24;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .play-clock.warning .clock-time {
+            color: #ef4444;
+        }
+
+        .clock-label {
+            font-size: 10px;
+            color: white;
+            margin-top: 3px;
+        }
+
+        .replay-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            padding: 30px;
+            border-radius: 16px;
+            border: 3px solid #fbbf24;
+            z-index: 2000;
+            text-align: center;
+        }
+
+        .replay-title {
+            color: #fbbf24;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .replay-video {
+            width: 600px;
+            max-width: 90vw;
+            height: 400px;
+            background: #000;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .big-play-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 64px;
+            font-weight: bold;
+            color: #fbbf24;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            z-index: 2000;
+            pointer-events: none;
+            animation: bigPlayBurst 2s ease forwards;
+        }
+
+        @keyframes bigPlayBurst {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.3) rotate(5deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0; }
+        }
+
+        .crowd-meter {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            width: 60px;
+            height: 200px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 30px;
+            border: 2px solid white;
+            padding: 10px;
+            z-index: 999;
+        }
+
+        .crowd-fill {
+            width: 100%;
+            background: linear-gradient(to top, #10b981, #fbbf24, #ef4444);
+            border-radius: 20px;
+            transition: height 0.5s ease;
+        }
+
+        .controls-key {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            font-size: 12px;
+            z-index: 999;
+            max-width: 320px;
+        }
+
+        .controls-key h4 {
+            margin: 0 0 10px 0;
+            color: #3b82f6;
+            font-size: 14px;
+            border-bottom: 1px solid #3b82f6;
+            padding-bottom: 5px;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 3px 0;
+        }
+
+        .control-key {
+            background: rgba(59, 130, 246, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .control-action {
+            opacity: 0.9;
+        }
+
+        .coin-toss-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            padding: 40px;
+            border-radius: 20px;
+            border: 4px solid #fbbf24;
+            z-index: 3000;
+            text-align: center;
+            min-width: 400px;
+        }
+
+        .coin-animation {
+            width: 150px;
+            height: 150px;
+            margin: 20px auto;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 72px;
+            animation: coinFlip 2s ease-in-out;
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
+        }
+
+        @keyframes coinFlip {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(1800deg); }
+            100% { transform: rotateY(3600deg); }
+        }
+
+        .turnover-alert {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+        }
+
+        .feature-highlight {
+            background: rgba(251, 191, 36, 0.1);
+            border: 2px solid #fbbf24;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #fbbf24;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .ui-title { font-size: 24px; }
+            .play-grid { grid-template-columns: 1fr 1fr; }
+            .special-moves { 
+                bottom: 80px; 
+                right: 10px;
+                flex-direction: row;
+            }
+            .move-button {
+                width: 60px;
+                height: 60px;
+            }
+            .controls-key {
+                font-size: 10px;
+                max-width: 280px;
+                padding: 10px;
+            }
+            .hike-instruction {
+                font-size: 18px;
+                padding: 30px 40px;
+            }
+            .hike-instruction .main-text {
+                font-size: 24px;
+            }
+            .hike-instruction .method {
+                font-size: 14px;
+            }
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            animation: particleFly 1s ease-out forwards;
+        }
+
+        @keyframes particleFly {
+            from { transform: translate(0, 0) scale(1); opacity: 1; }
+            to { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        function resizeCanvas() {
+            const maxWidth = Math.min(window.innerWidth - 20, 1200);
+            const maxHeight = Math.min(window.innerHeight - 20, 800);
+            const aspectRatio = 1.5;
+            
+            if (maxWidth / maxHeight > aspectRatio) {
+                canvas.height = maxHeight;
+                canvas.width = maxHeight * aspectRatio;
+            } else {
+                canvas.width = maxWidth;
+                canvas.height = maxWidth / aspectRatio;
+            }
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Sound System
+        const sounds = {
+            enabled: true,
+            crowdLevel: 0.5,
+            play(type, intensity = 1) {
+                if (!this.enabled) return;
+                
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    switch(type) {
+                        case 'whistle':
+                            oscillator.frequency.value = 800;
+                            gainNode.gain.value = 0.3;
+                            oscillator.start();
+                            oscillator.stop(audioCtx.currentTime + 0.2);
+                            break;
+                        case 'tackle':
+                            oscillator.type = 'sawtooth';
+                            oscillator.frequency.value = 100;
+                            gainNode.gain.value = 0.2 * intensity;
+                            oscillator.start();
+                            oscillator.stop(audioCtx.currentTime + 0.1);
+                            this.screenShake(intensity * 5);
+                            break;
+                        case 'touchdown':
+                            for(let i = 0; i < 5; i++) {
+                                setTimeout(() => {
+                                    const osc = audioCtx.createOscillator();
+                                    const gain = audioCtx.createGain();
+                                    osc.connect(gain);
+                                    gain.connect(audioCtx.destination);
+                                    osc.frequency.value = 400 + i * 150;
+                                    gain.gain.value = 0.25;
+                                    osc.start();
+                                    osc.stop(audioCtx.currentTime + 0.15);
+                                }, i * 100);
+                            }
+                            this.crowdLevel = 1.0;
+                            this.screenShake(15);
+                            break;
+                        case 'fumble':
+                        case 'interception':
+                            oscillator.type = 'triangle';
+                            oscillator.frequency.value = 150;
+                            gainNode.gain.value = 0.3;
+                            oscillator.start();
+                            oscillator.stop(audioCtx.currentTime + 0.3);
+                            this.crowdLevel = 0.2;
+                            this.screenShake(10);
+                            break;
+                        case 'kick':
+                            oscillator.type = 'sine';
+                            oscillator.frequency.value = 200;
+                            gainNode.gain.value = 0.3;
+                            oscillator.start();
+                            oscillator.stop(audioCtx.currentTime + 0.15);
+                            break;
+                        case 'crowd':
+                            const noise = audioCtx.createBufferSource();
+                            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.5, audioCtx.sampleRate);
+                            const data = buffer.getChannelData(0);
+                            for (let i = 0; i < buffer.length; i++) {
+                                data[i] = Math.random() * 2 - 1;
+                            }
+                            noise.buffer = buffer;
+                            const crowdGain = audioCtx.createGain();
+                            crowdGain.gain.value = 0.05 * this.crowdLevel * intensity;
+                            noise.connect(crowdGain);
+                            crowdGain.connect(audioCtx.destination);
+                            noise.start();
+                            noise.stop(audioCtx.currentTime + 0.5);
+                            break;
+                    }
+                } catch(e) {
+                    console.log('Audio error:', e);
+                }
+            },
+            screenShake(intensity) {
+                const container = document.getElementById('gameContainer');
+                const maxShake = Math.min(intensity, 20);
+                let shakeCount = 0;
+                const maxCount = 10;
+                
+                const shakeInterval = setInterval(() => {
+                    if (shakeCount >= maxCount) {
+                        container.style.transform = 'translate(0, 0)';
+                        clearInterval(shakeInterval);
+                        return;
+                    }
+                    
+                    const x = (Math.random() - 0.5) * maxShake;
+                    const y = (Math.random() - 0.5) * maxShake;
+                    container.style.transform = `translate(${x}px, ${y}px)`;
+                    shakeCount++;
+                }, 50);
+            },
+            updateCrowd() {
+                this.crowdLevel = this.crowdLevel * 0.98 + 0.5 * 0.02;
+                updateCrowdMeter();
+            }
+        };
+
+        // Particle effects
+        function createParticles(x, y, count, color) {
+            for (let i = 0; i < count; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.width = '8px';
+                particle.style.height = '8px';
+                particle.style.background = color;
+                particle.style.borderRadius = '50%';
+                particle.style.setProperty('--tx', `${(Math.random() - 0.5) * 200}px`);
+                particle.style.setProperty('--ty', `${(Math.random() - 0.5) * 200}px`);
+                document.body.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
+
+        // Game State
+        const gameState = {
+            mode: 'menu',
+            playerName: '',
+            difficulty: 'pro',
+            nflTeams: [],
+            loadingTeams: false,
+            weather: 'Clear',
+            wonCoinToss: false,
+            waitingForHike: false,
+            season: {
+                week: 1,
+                playerTeam: null,
+                teams: [],
+                schedule: [],
+                playerRecord: { wins: 0, losses: 0 }
+            },
+            game: {
+                quarter: 1,
+                timeLeft: 900,
+                playClock: 40,
+                playClockActive: false,
+                playClockShouldStart: false,
+                possession: 'player',
+                down: 1,
+                yardsToGo: 10,
+                ballPosition: 25,
+                playerScore: 0,
+                opponentScore: 0,
+                selectedPlay: null,
+                targetPlayer: null,
+                players: [],
+                ballCarrier: null,
+                gamePhase: 'setup',
+                opponent: null,
+                needsKick: false,
+                kickPhase: null,
+                kickPower: 0,
+                ball: null,
+                lastPlay: null,
+                lastPlayResult: null,
+                replayData: [],
+                overtime: false,
+                defensivePlay: null,
+                opponentPlay: null,
+                opponentDrive: null,
+                canHardCount: true,
+                stats: {
+                    passingYards: 0,
+                    rushingYards: 0,
+                    totalYards: 0,
+                    touchdowns: 0,
+                    turnovers: 0,
+                    fumbles: 0,
+                    interceptions: 0,
+                    firstDowns: 0,
+                    completions: 0,
+                    attempts: 0,
+                    offsidesPenalties: 0
+                }
+            },
+            player: {
+                stamina: 100,
+                moveStats: {
+                    jukes: 0,
+                    spins: 0,
+                    bursts: 0
+                }
+            },
+            input: {
+                mouseX: 0,
+                mouseY: 0,
+                touching: false,
+                keys: {}
+            }
+        };
+
+        // Difficulty settings
+        const DIFFICULTY = {
+            rookie: { 
+                defenderSpeed: 0.7, 
+                successBonus: 0.15, 
+                fumbleChance: 0.02,
+                intChance: 0.05,
+                offsidesChance: 0.25,
+                label: '🟢 Rookie'
+            },
+            pro: { 
+                defenderSpeed: 1.0, 
+                successBonus: 0, 
+                fumbleChance: 0.05,
+                intChance: 0.1,
+                offsidesChance: 0.15,
+                label: '🔵 Pro'
+            },
+            allpro: { 
+                defenderSpeed: 1.3, 
+                successBonus: -0.1, 
+                fumbleChance: 0.08,
+                intChance: 0.15,
+                offsidesChance: 0.10,
+                label: '🟡 All-Pro'
+            },
+            legend: { 
+                defenderSpeed: 1.6, 
+                successBonus: -0.2, 
+                fumbleChance: 0.12,
+                intChance: 0.2,
+                offsidesChance: 0.05,
+                label: '🔴 Legend'
+            }
+        };
+
+        // Expanded Playbook
+        const PLAYS = {
+            run: [
+                { name: 'Dive Run', type: 'run', icon: '→', success: 0.6, yards: [2, 8], target: 'RB' },
+                { name: 'Power Run', type: 'run', icon: '⇉', success: 0.55, yards: [3, 10], target: 'RB' },
+                { name: 'Sweep Run', type: 'run', icon: '↗', success: 0.5, yards: [0, 12], target: 'RB' },
+                { name: 'Draw Play', type: 'run', icon: '⟿', success: 0.65, yards: [3, 7], target: 'RB' },
+                { name: 'Zone Read', type: 'run', icon: '⇄', success: 0.58, yards: [1, 15], target: 'QB' },
+                { name: 'Counter Run', type: 'run', icon: '↶', success: 0.52, yards: [2, 14], target: 'RB' }
+            ],
+            pass: [
+                { name: 'Slant Route', type: 'pass', icon: '⤢', success: 0.7, yards: [5, 12], target: 'WR1' },
+                { name: 'Post Route', type: 'pass', icon: '↑', success: 0.6, yards: [15, 30], target: 'WR2' },
+                { name: 'Out Route', type: 'pass', icon: '→', success: 0.65, yards: [7, 15], target: 'WR1' },
+                { name: 'Deep Pass', type: 'pass', icon: '⇈', success: 0.45, yards: [20, 50], target: 'WR3' },
+                { name: 'Curl Route', type: 'pass', icon: '↷', success: 0.68, yards: [8, 14], target: 'WR2' },
+                { name: 'Screen Pass', type: 'pass', icon: '⤿', success: 0.75, yards: [3, 15], target: 'RB' }
+            ]
+        };
+
+        // Defensive Playbook
+        const DEFENSIVE_PLAYS = {
+            coverage: [
+                { name: 'Cover 2', icon: '🛡️', vsRun: 0.5, vsPass: 0.7, description: 'Good against short passes' },
+                { name: 'Cover 3', icon: '🛡️🛡️', vsRun: 0.6, vsPass: 0.65, description: 'Balanced coverage' },
+                { name: 'Man Coverage', icon: '👤', vsRun: 0.4, vsPass: 0.8, description: 'Lock down receivers' },
+                { name: 'Cover 4', icon: '🛡️🛡️🛡️', vsRun: 0.7, vsPass: 0.5, description: 'Stop deep passes' }
+            ],
+            pressure: [
+                { name: 'Blitz', icon: '⚡', vsRun: 0.8, vsPass: 0.6, description: 'All-out pressure' },
+                { name: 'Nickel Defense', icon: '5️⃣', vsRun: 0.5, vsPass: 0.75, description: 'Extra DB' },
+                { name: 'Dime Defense', icon: '6️⃣', vsRun: 0.3, vsPass: 0.85, description: 'Pass defense' },
+                { name: 'Goal Line', icon: '🧱', vsRun: 0.9, vsPass: 0.4, description: 'Stop the run' }
+            ]
+        };
+
+        // Weather types
+        const WEATHER_TYPES = ['Clear', 'Rain', 'Snow', 'Windy'];
+
+        // Load NFL Teams from ESPN API
+        async function loadNFLTeams() {
+            if (gameState.nflTeams.length > 0) return;
+            
+            gameState.loadingTeams = true;
+            
+            try {
+                const response = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams?limit=32');
+                const data = await response.json();
+                
+                gameState.nflTeams = data.sports[0].leagues[0].teams.map(team => {
+                    const t = team.team;
+                    return {
+                        id: t.id,
+                        name: t.displayName,
+                        abbreviation: t.abbreviation,
+                        color: t.color || '#3b82f6',
+                        alternateColor: t.alternateColor || '#ffffff',
+                        logo: t.logos?.[0]?.href || '',
+                        location: t.location,
+                        nickname: t.nickname,
+                        rating: 75 + Math.floor(Math.random() * 20),
+                        roster: null
+                    };
+                });
+                
+                console.log('Loaded', gameState.nflTeams.length, 'NFL teams');
+            } catch (error) {
+                console.error('Error loading teams:', error);
+                gameState.nflTeams = generateFallbackTeams();
+            }
+            
+            gameState.loadingTeams = false;
+        }
+
+        function generateFallbackTeams() {
+            const teams = [
+                'Cardinals', 'Falcons', 'Ravens', 'Bills', 'Panthers', 'Bears', 'Bengals', 'Browns',
+                'Cowboys', 'Broncos', 'Lions', 'Packers', 'Texans', 'Colts', 'Jaguars', 'Chiefs',
+                'Raiders', 'Chargers', 'Rams', 'Dolphins', 'Vikings', 'Patriots', 'Saints', 'Giants',
+                'Jets', 'Eagles', 'Steelers', '49ers', 'Seahawks', 'Buccaneers', 'Titans', 'Commanders'
+            ];
+            
+            return teams.map((name, idx) => ({
+                id: idx + 1,
+                name: name,
+                abbreviation: name.substring(0, 3).toUpperCase(),
+                color: `hsl(${idx * 11}, 70%, 50%)`,
+                alternateColor: '#ffffff',
+                logo: '',
+                rating: 70 + Math.floor(Math.random() * 25),
+                roster: null
+            }));
+        }
+
+        // Load team roster
+        async function loadTeamRoster(teamId) {
+            try {
+                const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/roster`);
+                const data = await response.json();
+                
+                const roster = {
+                    qb: null,
+                    rb: null,
+                    wr: []
+                };
+                
+                data.athletes.forEach(group => {
+                    group.items.forEach(athlete => {
+                        const player = {
+                            id: athlete.id,
+                            name: athlete.displayName,
+                            jersey: athlete.jersey,
+                            position: athlete.position.abbreviation,
+                            speed: 70 + Math.random() * 30,
+                            power: 70 + Math.random() * 30,
+                            hands: 70 + Math.random() * 30,
+                            awareness: 70 + Math.random() * 30
+                        };
+                        
+                        if (athlete.position.abbreviation === 'QB' && !roster.qb) {
+                            roster.qb = player;
+                        } else if (athlete.position.abbreviation === 'RB' && !roster.rb) {
+                            roster.rb = player;
+                        } else if (athlete.position.abbreviation === 'WR' && roster.wr.length < 3) {
+                            roster.wr.push(player);
+                        }
+                    });
+                });
+                
+                if (!roster.qb) roster.qb = { name: 'Quarterback', jersey: '12', position: 'QB', speed: 75, power: 75, hands: 75, awareness: 80 };
+                if (!roster.rb) roster.rb = { name: 'Running Back', jersey: '28', position: 'RB', speed: 85, power: 80, hands: 70, awareness: 75 };
+                while (roster.wr.length < 3) {
+                    roster.wr.push({ 
+                        name: `Receiver ${roster.wr.length + 1}`, 
+                        jersey: String(80 + roster.wr.length), 
+                        position: 'WR',
+                        speed: 90,
+                        power: 70,
+                        hands: 85,
+                        awareness: 75
+                    });
+                }
+                
+                return roster;
+            } catch (error) {
+                console.error('Error loading roster:', error);
+                return {
+                    qb: { name: 'Quarterback', jersey: '12', position: 'QB', speed: 75, power: 75, hands: 75, awareness: 80 },
+                    rb: { name: 'Running Back', jersey: '28', position: 'RB', speed: 85, power: 80, hands: 70, awareness: 75 },
+                    wr: [
+                        { name: 'Wide Receiver 1', jersey: '80', position: 'WR', speed: 90, power: 70, hands: 85, awareness: 75 },
+                        { name: 'Wide Receiver 2', jersey: '81', position: 'WR', speed: 88, power: 72, hands: 83, awareness: 76 },
+                        { name: 'Wide Receiver 3', jersey: '82', position: 'WR', speed: 87, power: 71, hands: 84, awareness: 74 }
+                    ]
+                };
+            }
+        }
+
+        // Initialize season
+        async function initializeSeason(playerTeamIndex) {
+            gameState.season.playerTeam = gameState.nflTeams[playerTeamIndex];
+            
+            gameState.season.playerTeam.roster = await loadTeamRoster(gameState.season.playerTeam.id);
+            
+            gameState.season.teams = gameState.nflTeams.map((team, idx) => ({
+                ...team,
+                wins: 0,
+                losses: 0,
+                isPlayer: idx === playerTeamIndex
+            }));
+            
+            gameState.season.schedule = [];
+            const opponents = gameState.season.teams.filter(t => !t.isPlayer);
+            for (let i = 0; i < 7; i++) {
+                const opponent = opponents[i % opponents.length];
+                gameState.season.schedule.push({
+                    week: i + 1,
+                    opponent: opponent,
+                    played: false,
+                    won: false
+                });
+            }
+            
+            gameState.season.week = 1;
+            gameState.season.playerRecord = { wins: 0, losses: 0 };
+            gameState.mode = 'season';
+            saveGame();
+        }
+
+        // Coin Toss
+        function showCoinToss(opponent) {
+            const overlay = document.createElement('div');
+            overlay.className = 'coin-toss-overlay';
+            overlay.innerHTML = `
+                <div class="ui-title" style="color: #fbbf24; font-size: 36px;">COIN TOSS</div>
+                <div style="color: white; font-size: 18px; margin: 20px 0;">
+                    Choose heads or tails
+                </div>
+                <div style="display: flex; gap: 20px; justify-content: center; margin: 30px 0;">
+                    <button class="action-button" onclick="performCoinToss('heads', this)" style="font-size: 24px;">
+                        👤 HEADS
+                    </button>
+                    <button class="action-button" onclick="performCoinToss('tails', this)" style="font-size: 24px;">
+                        🦅 TAILS
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function performCoinToss(choice, button) {
+            const overlay = document.querySelector('.coin-toss-overlay');
+            overlay.innerHTML = '<div class="ui-title" style="color: #fbbf24; font-size: 36px;">COIN TOSS</div>';
+            
+            const result = Math.random() > 0.5 ? 'heads' : 'tails';
+            const won = choice === result;
+            
+            const animDiv = document.createElement('div');
+            animDiv.className = 'coin-animation';
+            animDiv.textContent = '🪙';
+            overlay.appendChild(animDiv);
+            
+            setTimeout(() => {
+                animDiv.textContent = result === 'heads' ? '👤' : '🦅';
+            }, 1800);
+            
+            setTimeout(() => {
+                if (won) {
+                    gameState.wonCoinToss = true;
+                    overlay.innerHTML = `
+                        <div class="ui-title" style="color: #10b981;">YOU WIN THE TOSS!</div>
+                        <div class="ui-title" style="color: #fbbf24; font-size: 64px; margin: 20px 0;">${result === 'heads' ? '👤' : '🦅'}</div>
+                        <div style="color: white; font-size: 18px; margin: 10px 0;">
+                            Result: <strong>${result.toUpperCase()}</strong>
+                        </div>
+                        <div style="color: white; font-size: 16px; margin: 20px 0;">
+                            Do you want to receive or kick?
+                        </div>
+                        <div style="display: flex; gap: 20px; justify-content: center; margin: 30px 0;">
+                            <button class="action-button" onclick="chooseCoinTossOption('receive')">
+                                Receive
+                            </button>
+                            <button class="action-button secondary" onclick="chooseCoinTossOption('kick')">
+                                Kick
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    gameState.wonCoinToss = false;
+                    overlay.innerHTML = `
+                        <div class="ui-title" style="color: #ef4444;">OPPONENT WINS TOSS</div>
+                        <div class="ui-title" style="color: #fbbf24; font-size: 64px; margin: 20px 0;">${result === 'heads' ? '👤' : '🦅'}</div>
+                        <div style="color: white; font-size: 18px; margin: 10px 0;">
+                            Result: <strong>${result.toUpperCase()}</strong>
+                        </div>
+                        <div style="color: white; font-size: 16px; margin: 20px 0;">
+                            They chose to receive the ball
+                        </div>
+                        <button class="action-button" onclick="closeCoinToss('kick')" style="margin-top: 20px;">
+                            Continue
+                        </button>
+                    `;
+                }
+            }, 2500);
+        }
+
+        function chooseCoinTossOption(choice) {
+            closeCoinToss(choice);
+        }
+
+        function closeCoinToss(choice) {
+            document.querySelector('.coin-toss-overlay').remove();
+            
+            if (choice === 'receive') {
+                gameState.game.possession = 'player';
+                gameState.mode = 'playSelect';
+            } else {
+                gameState.game.possession = 'opponent';
+                opponentPossession();
+            }
+        }
+
+        // Start game
+        async function startGame(opponent) {
+            gameState.weather = WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
+            
+            if (!opponent.roster) {
+                opponent.roster = await loadTeamRoster(opponent.id);
+            }
+            
+            gameState.game = {
+                quarter: 1,
+                timeLeft: 900,
+                playClock: 40,
+                playClockActive: false,
+                playClockShouldStart: false,
+                possession: 'player',
+                down: 1,
+                yardsToGo: 10,
+                ballPosition: 25,
+                playerScore: 0,
+                opponentScore: 0,
+                selectedPlay: null,
+                targetPlayer: null,
+                players: [],
+                ballCarrier: null,
+                gamePhase: 'setup',
+                opponent: opponent,
+                needsKick: false,
+                kickPhase: null,
+                kickPower: 0,
+                ball: null,
+                lastPlay: null,
+                lastPlayResult: null,
+                replayData: [],
+                overtime: false,
+                defensivePlay: null,
+                opponentPlay: null,
+                opponentDrive: null,
+                canHardCount: true,
+                stats: {
+                    passingYards: 0,
+                    rushingYards: 0,
+                    totalYards: 0,
+                    touchdowns: 0,
+                    turnovers: 0,
+                    fumbles: 0,
+                    interceptions: 0,
+                    firstDowns: 0,
+                    completions: 0,
+                    attempts: 0,
+                    offsidesPenalties: 0
+                }
+            };
+            
+            gameState.player.stamina = 100;
+            
+            showCoinToss(opponent);
+            
+            sounds.play('whistle');
+            sounds.crowdLevel = 0.6;
+        }
+
+        // Play Clock Management
+        let playClockInterval = null;
+
+        function startPlayClock() {
+            if (!gameState.game.playClockShouldStart) return;
+            
+            gameState.game.playClock = 40;
+            gameState.game.playClockActive = true;
+            showPlayClock();
+            
+            playClockInterval = setInterval(() => {
+                gameState.game.playClock--;
+                updatePlayClockDisplay();
+                
+                if (gameState.game.playClock <= 0) {
+                    stopPlayClock();
+                    delayOfGame();
+                }
+            }, 1000);
+        }
+
+        function stopPlayClock() {
+            gameState.game.playClockActive = false;
+            gameState.game.playClockShouldStart = false;
+            if (playClockInterval) {
+                clearInterval(playClockInterval);
+                playClockInterval = null;
+            }
+            hidePlayClock();
+        }
+
+        function showPlayClock() {
+            if (document.querySelector('.play-clock')) return;
+            
+            const clock = document.createElement('div');
+            clock.className = 'play-clock';
+            clock.innerHTML = `
+                <div class="clock-time">40</div>
+                <div class="clock-label">PLAY CLOCK</div>
+            `;
+            document.body.appendChild(clock);
+        }
+
+        function hidePlayClock() {
+            const clock = document.querySelector('.play-clock');
+            if (clock) clock.remove();
+        }
+
+        function updatePlayClockDisplay() {
+            const clock = document.querySelector('.play-clock');
+            if (!clock) return;
+            
+            const timeDisplay = clock.querySelector('.clock-time');
+            timeDisplay.textContent = gameState.game.playClock;
+            
+            if (gameState.game.playClock <= 10) {
+                clock.classList.add('warning');
+                if (gameState.game.playClock <= 5) {
+                    sounds.play('whistle', 0.5);
+                }
+            } else {
+                clock.classList.remove('warning');
+            }
+        }
+
+        function delayOfGame() {
+            showBigPlayAlert('DELAY OF GAME! 🚨', 'turnover-alert');
+            gameState.game.ballPosition = Math.max(0, gameState.game.ballPosition - 5);
+            showMessage('5 yard penalty!');
+            sounds.play('whistle');
+            
+            setTimeout(() => {
+                gameState.mode = 'playSelect';
+            }, 2000);
+        }
+
+        // Hard Count
+        function tryHardCount() {
+            if (!gameState.game.canHardCount) {
+                showMessage('Already used hard count this drive!');
+                return;
+            }
+            
+            const difficulty = DIFFICULTY[gameState.difficulty];
+            const offsidesChance = difficulty.offsidesChance;
+            
+            let modifier = 0;
+            if (gameState.game.down >= 3) modifier += 0.10;
+            if (gameState.game.ballPosition < 30) modifier += 0.08;
+            if (gameState.game.yardsToGo > 7) modifier += 0.05;
+            
+            const finalChance = offsidesChance + modifier;
+            const success = Math.random() < finalChance;
+            
+            gameState.game.canHardCount = false;
+            
+            if (success) {
+                gameState.game.stats.offsidesPenalties++;
+                gameState.game.ballPosition += 5;
+                gameState.game.yardsToGo = Math.max(0, gameState.game.yardsToGo - 5);
+                
+                showBigPlayAlert('OFFSIDES! 🎯');
+                showMessage('Defense jumped! 5 yards');
+                sounds.play('crowd', 1.5);
+                sounds.crowdLevel = 0.85;
+                createParticles(window.innerWidth / 2, window.innerHeight / 2, 20, '#fbbf24');
+                
+                if (gameState.game.yardsToGo <= 0) {
+                    gameState.game.down = 1;
+                    gameState.game.yardsToGo = 10;
+                    gameState.game.stats.firstDowns++;
+                    showMessage('Automatic First Down!');
+                }
+                
+                setTimeout(() => {
+                    gameState.mode = 'playSelect';
+                }, 2500);
+            } else {
+                showMessage('Defense held discipline');
+                sounds.play('whistle', 0.7);
+                sounds.crowdLevel = 0.4;
+                
+                setTimeout(() => {
+                    gameState.mode = 'playSelect';
+                }, 1500);
+            }
+        }
+
+        // Show Formation Display - UPDATED WITH NEW HIKE INSTRUCTIONS
+        function showFormationOverlay(play) {
+            const overlay = document.createElement('div');
+            overlay.className = 'formation-overlay';
+            
+            const roster = gameState.season.playerTeam.roster;
+            
+            // Determine target player
+            let targetPlayer = null;
+            let targetName = '';
+            if (play.target === 'QB') {
+                targetPlayer = roster.qb;
+                targetName = `${roster.qb.name} #${roster.qb.jersey}`;
+            } else if (play.target === 'RB') {
+                targetPlayer = roster.rb;
+                targetName = `${roster.rb.name} #${roster.rb.jersey}`;
+            } else if (play.target === 'WR1') {
+                targetPlayer = roster.wr[0];
+                targetName = `${roster.wr[0].name} #${roster.wr[0].jersey}`;
+            } else if (play.target === 'WR2') {
+                targetPlayer = roster.wr[1];
+                targetName = `${roster.wr[1].name} #${roster.wr[1].jersey}`;
+            } else if (play.target === 'WR3') {
+                targetPlayer = roster.wr[2];
+                targetName = `${roster.wr[2].name} #${roster.wr[2].jersey}`;
+            }
+            
+            // Build offensive lineup
+            let offenseHTML = '<div class="formation-section">';
+            offenseHTML += '<div class="formation-section-title">OFFENSE - ' + play.name.toUpperCase() + '</div>';
+            offenseHTML += '<div class="player-grid">';
+            
+            // QB
+            const isQBTarget = play.target === 'QB';
+            offenseHTML += `<div class="player-card offense ${isQBTarget ? 'target' : ''}">
+                <div class="player-position">QB</div>
+                <div class="player-number">#${roster.qb.jersey}</div>
+                <div class="player-name">${roster.qb.name}</div>
+                ${isQBTarget ? '<div style="color: #fbbf24; margin-top: 5px;">🎯 TARGET</div>' : ''}
+            </div>`;
+            
+            // RB
+            const isRBTarget = play.target === 'RB';
+            offenseHTML += `<div class="player-card offense ${isRBTarget ? 'target' : ''}">
+                <div class="player-position">RB</div>
+                <div class="player-number">#${roster.rb.jersey}</div>
+                <div class="player-name">${roster.rb.name}</div>
+                ${isRBTarget ? '<div style="color: #fbbf24; margin-top: 5px;">🎯 TARGET</div>' : ''}
+            </div>`;
+            
+            // WRs
+            roster.wr.forEach((wr, i) => {
+                const isTarget = play.target === `WR${i + 1}`;
+                offenseHTML += `<div class="player-card offense ${isTarget ? 'target' : ''}">
+                    <div class="player-position">WR${i + 1}</div>
+                    <div class="player-number">#${wr.jersey}</div>
+                    <div class="player-name">${wr.name}</div>
+                    ${isTarget ? '<div style="color: #fbbf24; margin-top: 5px;">🎯 TARGET</div>' : ''}
+                </div>`;
+            });
+            
+            // O-Line
+            ['LT #75', 'LG #76', 'C #65', 'RG #66', 'RT #77'].forEach(pos => {
+                offenseHTML += `<div class="player-card offense">
+                    <div class="player-position">${pos}</div>
+                </div>`;
+            });
+            
+            offenseHTML += '</div></div>';
+            
+            // Build defensive lineup
+            let defenseHTML = '<div class="formation-section">';
+            defenseHTML += '<div class="formation-section-title">DEFENSE</div>';
+            defenseHTML += '<div class="player-grid">';
+            
+            // D-Line
+            for (let i = 0; i < 4; i++) {
+                defenseHTML += `<div class="player-card defense">
+                    <div class="player-position">DL</div>
+                    <div class="player-number">#${90 + i}</div>
+                </div>`;
+            }
+            
+            // Linebackers
+            for (let i = 0; i < 3; i++) {
+                defenseHTML += `<div class="player-card defense">
+                    <div class="player-position">LB</div>
+                    <div class="player-number">#${50 + i}</div>
+                </div>`;
+            }
+            
+            // Secondary
+            defenseHTML += `<div class="player-card defense">
+                <div class="player-position">CB</div>
+                <div class="player-number">#20</div>
+            </div>`;
+            defenseHTML += `<div class="player-card defense">
+                <div class="player-position">CB</div>
+                <div class="player-number">#21</div>
+            </div>`;
+            defenseHTML += `<div class="player-card defense">
+                <div class="player-position">S</div>
+                <div class="player-number">#22</div>
+            </div>`;
+            defenseHTML += `<div class="player-card defense">
+                <div class="player-position">S</div>
+                <div class="player-number">#23</div>
+            </div>`;
+            
+            defenseHTML += '</div></div>';
+            
+            overlay.innerHTML = `
+                <div class="formation-field">
+                    <div class="formation-title-big">🏈 ${play.name.toUpperCase()} 🏈</div>
+                    <div style="color: #fbbf24; font-size: 18px; text-align: center; margin-bottom: 25px;">
+                        Target: ${targetName}
+                    </div>
+                    ${offenseHTML}
+                    ${defenseHTML}
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            // Auto-show hike instructions after 2 seconds
+            setTimeout(() => {
+                showHikeInstructions();
+            }, 2000);
+        }
+
+        function hideFormationOverlay() {
+            const overlay = document.querySelector('.formation-overlay');
+            if (overlay) overlay.remove();
+        }
+
+        // NEW: Show Hike Instructions (replaces hike button)
+        function showHikeInstructions() {
+            if (document.querySelector('.hike-instruction')) return;
+            
+            const instruction = document.createElement('div');
+            instruction.className = 'hike-instruction';
+            instruction.innerHTML = `
+                <div class="main-text">🏈 READY TO HIKE! 🏈</div>
+                <div class="method">
+                    <span class="method-icon">📱</span>
+                    <strong>Touchscreen:</strong> Press any movement button
+                </div>
+                <div class="method">
+                    <span class="method-icon">⌨️</span>
+                    <strong>Keyboard:</strong> Press SPACEBAR
+                </div>
+                <div class="method">
+                    <span class="method-icon">🖱️</span>
+                    <strong>Mouse:</strong> Right-click on field
+                </div>
+            `;
+            document.body.appendChild(instruction);
+            
+            // Set waiting for hike flag
+            gameState.waitingForHike = true;
+        }
+
+        function hideHikeInstructions() {
+            const instruction = document.querySelector('.hike-instruction');
+            if (instruction) instruction.remove();
+            gameState.waitingForHike = false;
+        }
+
+        // NEW: Check for hike triggers
+        function checkHikeTriggers(event) {
+            if (!gameState.waitingForHike) return false;
+            
+            // Keyboard: Spacebar
+            if (event.type === 'keydown' && event.key === ' ') {
+                event.preventDefault();
+                hikeTheBall();
+                return true;
+            }
+            
+            // Mouse: Right-click on canvas
+            if (event.type === 'contextmenu') {
+                event.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                // Check if click is within canvas bounds
+                if (x >= 0 && x <= canvas.width && y >= 0 && y <= canvas.height) {
+                    hikeTheBall();
+                    return true;
+                }
+            }
+            
+            // Touchscreen/Keyboard: Any arrow key or WASD
+            if (event.type === 'keydown') {
+                const moveKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'];
+                if (moveKeys.includes(event.key)) {
+                    hikeTheBall();
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        // Hike the ball
+        function hikeTheBall() {
+            hideHikeInstructions();
+            hideFormationOverlay();
+            
+            const play = gameState.game.selectedPlay;
+            setupPlay(play);
+        }
+
+        // Setup play with HORIZONTAL left-to-right formation
+        function setupPlay(play) {
+            gameState.game.players = [];
+            gameState.game.replayData = [];
+            gameState.game.canHardCount = true;
+            
+            const fieldWidth = canvas.width * 0.8;
+            const fieldX = canvas.width * 0.1;
+            
+            // Calculate line of scrimmage position horizontally (left to right)
+            const lineOfScrimmage = fieldX + (fieldWidth * gameState.game.ballPosition / 100);
+            
+            // Field center for vertical positioning
+            const centerY = canvas.height / 2;
+            
+            const roster = gameState.season.playerTeam.roster;
+            
+            // Set target player
+            let targetPlayer = null;
+            if (play.target === 'QB') {
+                targetPlayer = roster.qb;
+            } else if (play.target === 'RB') {
+                targetPlayer = roster.rb;
+            } else if (play.target === 'WR1') {
+                targetPlayer = roster.wr[0];
+            } else if (play.target === 'WR2') {
+                targetPlayer = roster.wr[1];
+            } else if (play.target === 'WR3') {
+                targetPlayer = roster.wr[2];
+            }
+            gameState.game.targetPlayer = targetPlayer;
+            
+            // OFFENSIVE FORMATION - HORIZONTAL (moving left to right on field)
+            
+            // Offensive Line (5 players) - lined up horizontally at line of scrimmage
+            const olPositions = [
+                { type: 'LT', x: lineOfScrimmage, y: centerY - 80, number: 75 },
+                { type: 'LG', x: lineOfScrimmage, y: centerY - 40, number: 76 },
+                { type: 'C', x: lineOfScrimmage, y: centerY, number: 65 },
+                { type: 'RG', x: lineOfScrimmage, y: centerY + 40, number: 66 },
+                { type: 'RT', x: lineOfScrimmage, y: centerY + 80, number: 77 }
+            ];
+            
+            olPositions.forEach((pos) => {
+                gameState.game.players.push({
+                    type: pos.type,
+                    x: pos.x,
+                    y: pos.y,
+                    vx: 0,
+                    vy: 0,
+                    hasBall: false,
+                    team: 'player',
+                    number: pos.number,
+                    name: 'O-Line',
+                    isOffensiveLine: true,
+                    color: gameState.season.playerTeam.color
+                });
+            });
+            
+            // QB (behind center, to the left)
+            const qb = roster.qb;
+            const qbPlayer = {
+                type: 'QB',
+                x: lineOfScrimmage - 30,
+                y: centerY,
+                vx: 0,
+                vy: 0,
+                hasBall: true,
+                team: 'player',
+                number: qb.jersey,
+                name: qb.name,
+                stats: qb,
+                color: gameState.season.playerTeam.color,
+                isTarget: play.target === 'QB'
+            };
+            gameState.game.players.push(qbPlayer);
+            
+            if (play.type === 'run') {
+                // RB (behind QB)
+                const rb = roster.rb;
+                gameState.game.players.push({
+                    type: 'RB',
+                    x: lineOfScrimmage - 50,
+                    y: centerY + 30,
+                    vx: 0,
+                    vy: 0,
+                    hasBall: false,
+                    team: 'player',
+                    number: rb.jersey,
+                    name: rb.name,
+                    stats: rb,
+                    color: gameState.season.playerTeam.color,
+                    isTarget: play.target === 'RB'
+                });
+                
+                // TE (on the line, above RT)
+                gameState.game.players.push({
+                    type: 'TE',
+                    x: lineOfScrimmage,
+                    y: centerY + 120,
+                    vx: 0,
+                    vy: 0,
+                    hasBall: false,
+                    team: 'player',
+                    number: 88,
+                    name: 'Tight End',
+                    stats: roster.wr[0].stats,
+                    color: gameState.season.playerTeam.color
+                });
+                
+                // 2 WRs on run plays (spread out above and below)
+                roster.wr.slice(0, 2).forEach((wr, i) => {
+                    gameState.game.players.push({
+                        type: 'WR',
+                        x: lineOfScrimmage,
+                        y: i === 0 ? centerY - 150 : centerY + 150,
+                        vx: 0,
+                        vy: 0,
+                        hasBall: false,
+                        team: 'player',
+                        number: wr.jersey,
+                        name: wr.name,
+                        stats: wr,
+                        color: gameState.season.playerTeam.color
+                    });
+                });
+                
+                // Fullback (in front of RB)
+                gameState.game.players.push({
+                    type: 'FB',
+                    x: lineOfScrimmage - 20,
+                    y: centerY + 20,
+                    vx: 0,
+                    vy: 0,
+                    hasBall: false,
+                    team: 'player',
+                    number: 44,
+                    name: 'Fullback',
+                    stats: roster.rb.stats,
+                    color: gameState.season.playerTeam.color
+                });
+            } else {
+                // 3 WRs for pass plays (spread vertically)
+                roster.wr.forEach((wr, i) => {
+                    gameState.game.players.push({
+                        type: 'WR',
+                        x: lineOfScrimmage,
+                        y: [centerY - 150, centerY, centerY + 150][i],
+                        vx: 0,
+                        vy: 0,
+                        hasBall: false,
+                        team: 'player',
+                        number: wr.jersey,
+                        name: wr.name,
+                        stats: wr,
+                        route: play.name,
+                        routeProgress: 0,
+                        color: gameState.season.playerTeam.color,
+                        isTarget: play.target === `WR${i + 1}`
+                    });
+                });
+                
+                // RB for pass protection
+                const rb = roster.rb;
+                gameState.game.players.push({
+                    type: 'RB',
+                    x: lineOfScrimmage - 50,
+                    y: centerY + 30,
+                    vx: 0,
+                    vy: 0,
+                    hasBall: false,
+                    team: 'player',
+                    number: rb.jersey,
+                    name: rb.name,
+                    stats: rb,
+                    color: gameState.season.playerTeam.color,
+                    isTarget: play.target === 'RB'
+                });
+                
+                // TE (on the line)
+                gameState.game.players.push({
+                    type: 'TE',
+                    x: lineOfScrimmage,
+                    y: centerY + 120,
+                    vx: 0,
+                    vy: 0,
+                    hasBall: false,
+                    team: 'player',
+                    number: 88,
+                    name: 'Tight End',
+                    route: 'Seam',
+                    routeProgress: 0,
+                    stats: roster.wr[0].stats,
+                    color: gameState.season.playerTeam.color
+                });
+            }
+            
+            // DEFENSIVE FORMATION - HORIZONTAL (across from offense)
+            
+            // Defensive Line (4 players, spread vertically at line of scrimmage + 20)
+            for (let i = 0; i < 4; i++) {
+                gameState.game.players.push({
+                    type: 'DL',
+                    x: lineOfScrimmage + 20,
+                    y: [centerY - 70, centerY - 25, centerY + 25, centerY + 70][i],
+                    vx: 0,
+                    vy: 0,
+                    team: 'opponent',
+                    number: 90 + i,
+                    isDefensiveLine: true,
+                    color: gameState.game.opponent.color
+                });
+            }
+            
+            // Linebackers (3 players, spread vertically behind D-line)
+            for (let i = 0; i < 3; i++) {
+                gameState.game.players.push({
+                    type: 'LB',
+                    x: lineOfScrimmage + 50,
+                    y: [centerY - 80, centerY, centerY + 80][i],
+                    vx: 0,
+                    vy: 0,
+                    team: 'opponent',
+                    number: 50 + i,
+                    isLinebacker: true,
+                    color: gameState.game.opponent.color
+                });
+            }
+            
+            // Secondary (4 players - 2 CB, 2 S, spread vertically behind LBs)
+            for (let i = 0; i < 4; i++) {
+                gameState.game.players.push({
+                    type: i < 2 ? 'CB' : 'S',
+                    x: lineOfScrimmage + [80, 80, 110, 110][i],
+                    y: [centerY - 120, centerY + 120, centerY - 60, centerY + 60][i],
+                    vx: 0,
+                    vy: 0,
+                    team: 'opponent',
+                    number: 20 + i,
+                    isSecondary: true,
+                    color: gameState.game.opponent.color
+                });
+            }
+            
+            gameState.game.ballCarrier = gameState.game.players.find(p => p.hasBall);
+            gameState.game.gamePhase = 'snap';
+            gameState.mode = 'playing';
+            sounds.play('whistle');
+            sounds.play('crowd', 1);
+            showSpecialMoveButtons();
+            showControlsKey();
+            updateCrowdMeter();
+        }
+
+        // Game physics - UPDATED for horizontal field
+        function updateGameplay(deltaTime) {
+            if (gameState.game.gamePhase === 'tackle') return;
+            
+            if (gameState.game.replayData.length < 300) {
+                gameState.game.replayData.push({
+                    players: gameState.game.players.map(p => ({
+                        x: p.x,
+                        y: p.y,
+                        type: p.type,
+                        hasBall: p.hasBall,
+                        color: p.color,
+                        number: p.number
+                    }))
+                });
+            }
+            
+            if (gameState.player.stamina < 100) {
+                gameState.player.stamina = Math.min(100, gameState.player.stamina + 0.1);
+                updateSpecialMoveButtons();
+            }
+            
+            const play = gameState.game.selectedPlay;
+            const dt = deltaTime / 16.67;
+            const difficulty = DIFFICULTY[gameState.difficulty];
+            
+            const weatherMultiplier = gameState.weather === 'Rain' ? 0.85 : 
+                                     gameState.weather === 'Snow' ? 0.8 : 
+                                     gameState.weather === 'Windy' ? 0.9 : 1.0;
+            
+            // Update ball carrier
+            if (gameState.game.ballCarrier) {
+                const carrier = gameState.game.ballCarrier;
+                
+                if (carrier.team === 'player') {
+                    const speedMult = (carrier.stats?.speed || 80) / 80;
+                    const speed = 3 * dt * weatherMultiplier * speedMult;
+                    
+                    // HORIZONTAL MOVEMENT (left to right is main direction)
+                    if (gameState.input.keys['ArrowRight'] || gameState.input.keys['d'] || gameState.input.keys['D']) {
+                        carrier.vx = speed;
+                    } else if (gameState.input.keys['ArrowLeft'] || gameState.input.keys['a'] || gameState.input.keys['A']) {
+                        carrier.vx = -speed;
+                    } else {
+                        carrier.vx *= 0.9;
+                    }
+                    
+                    // VERTICAL MOVEMENT (up/down for jukes)
+                    if (gameState.input.keys['ArrowUp'] || gameState.input.keys['w'] || gameState.input.keys['W']) {
+                        carrier.vy = -speed;
+                    } else if (gameState.input.keys['ArrowDown'] || gameState.input.keys['s'] || gameState.input.keys['S']) {
+                        carrier.vy = speed;
+                    } else {
+                        carrier.vy *= 0.9;
+                    }
+                    
+                    // Touch control
+                    if (gameState.input.touching) {
+                        const dx = gameState.input.mouseX - carrier.x;
+                        const dy = gameState.input.mouseY - carrier.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist > 20) {
+                            carrier.vx = (dx / dist) * speed;
+                            carrier.vy = (dy / dist) * speed;
+                        }
+                    }
+                    
+                    // Check for fumble
+                    if (Math.random() < difficulty.fumbleChance * 0.001) {
+                        causeFumble();
+                        return;
+                    }
+                }
+                
+                carrier.x += carrier.vx;
+                carrier.y += carrier.vy;
+                
+                // Boundary check
+                const fieldX = canvas.width * 0.1;
+                const fieldWidth = canvas.width * 0.8;
+                const fieldY = canvas.height * 0.2;
+                const fieldHeight = canvas.height * 0.6;
+                
+                carrier.x = Math.max(fieldX, Math.min(fieldX + fieldWidth, carrier.x));
+                carrier.y = Math.max(fieldY, Math.min(fieldY + fieldHeight, carrier.y));
+            }
+            
+            // Update receivers - HORIZONTAL ROUTES
+            gameState.game.players.forEach(player => {
+                if ((player.type === 'WR' || player.type === 'TE') && !player.hasBall) {
+                    player.routeProgress += 0.02 * dt;
+                    
+                    const speed = (player.stats?.speed || 85) / 85;
+                    
+                    // Routes run horizontally to the right
+                    if (play.name.includes('Slant')) {
+                        player.vx = 2 * dt * speed;
+                        player.vy = player.y < canvas.height / 2 ? 1 * dt * speed : -1 * dt * speed;
+                    } else if (play.name.includes('Post')) {
+                        player.vx = 2.5 * dt * speed;
+                        if (player.routeProgress > 0.5) player.vy = 0;
+                    } else if (play.name.includes('Out')) {
+                        player.vx = 2 * dt * speed;
+                        if (player.routeProgress > 0.4) {
+                            player.vy = player.y < canvas.height / 2 ? -2 * dt * speed : 2 * dt * speed;
+                            player.vx = 1 * dt * speed;
+                        }
+                    } else if (play.name.includes('Deep')) {
+                        player.vx = 3 * dt * speed;
+                    } else if (play.name.includes('Curl')) {
+                        player.vx = 2 * dt * speed;
+                        if (player.routeProgress > 0.6) player.vx = -0.5 * dt * speed;
+                    } else if (play.name.includes('Screen')) {
+                        player.vx = 0.5 * dt * speed;
+                    } else if (player.route === 'Seam') {
+                        player.vx = 2.2 * dt * speed;
+                    }
+                    
+                    player.x += player.vx;
+                    player.y += player.vy;
+                }
+                
+                // Update defenders
+                if (player.team === 'opponent' && gameState.game.ballCarrier) {
+                    const carrier = gameState.game.ballCarrier;
+                    const dx = carrier.x - player.x;
+                    const dy = carrier.y - player.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    const defenderSpeed = (1.5 + (gameState.game.opponent.rating - 75) / 50) * dt * weatherMultiplier * difficulty.defenderSpeed;
+                    
+                    if ((player.isDefensiveLine || player.isLinebacker) && dist > 20) {
+                        player.vx = (dx / dist) * defenderSpeed;
+                        player.vy = (dy / dist) * defenderSpeed;
+                        player.x += player.vx;
+                        player.y += player.vy;
+                    } else if (player.isSecondary) {
+                        if (dist < 100 && dist > 20) {
+                            player.vx = (dx / dist) * defenderSpeed * 0.7;
+                            player.vy = (dy / dist) * defenderSpeed * 0.7;
+                            player.x += player.vx;
+                            player.y += player.vy;
+                        }
+                    }
+                    
+                    // Check for tackle
+                    if (dist < 25) {
+                        tacklePlay();
+                    }
+                }
+            });
+            
+            // Check for touchdown/out of bounds
+            if (gameState.game.ballCarrier) {
+                const carrier = gameState.game.ballCarrier;
+                const fieldX = canvas.width * 0.1;
+                const fieldWidth = canvas.width * 0.8;
+                
+                // UPDATED: Touchdown when ball crosses the goal line (right edge at 100 yard line)
+                if (carrier.x >= fieldX + fieldWidth * 0.95) {
+                    scoreTouchdown();
+                }
+                
+                // Out of bounds (top/bottom)
+                if (carrier.y < canvas.height * 0.2 || carrier.y > canvas.height * 0.8) {
+                    tacklePlay();
+                }
+            }
+            
+            sounds.updateCrowd();
+        }
+
+        // Fumble mechanic
+        function causeFumble() {
+            gameState.game.gamePhase = 'tackle';
+            gameState.game.stats.fumbles++;
+            gameState.game.stats.turnovers++;
+            gameState.game.lastPlayResult = 'turnover';
+            
+            hideSpecialMoveButtons();
+            hideControlsKey();
+            sounds.play('fumble');
+            
+            showBigPlayAlert('FUMBLE! 😱', 'turnover-alert');
+            
+            const recovered = Math.random() > 0.5;
+            
+            setTimeout(() => {
+                if (!recovered) {
+                    showMessage('Opponent Recovered!');
+                    gameState.game.possession = 'opponent';
+                    opponentPossession();
+                } else {
+                    showMessage('Ball Recovered!');
+                    gameState.game.playClockShouldStart = false;
+                    gameState.mode = 'playSelect';
+                }
+            }, 2000);
+        }
+
+        // Interception mechanic
+        function causeInterception() {
+            gameState.game.gamePhase = 'tackle';
+            gameState.game.stats.interceptions++;
+            gameState.game.stats.turnovers++;
+            gameState.game.lastPlayResult = 'turnover';
+            
+            hideSpecialMoveButtons();
+            hideControlsKey();
+            sounds.play('interception');
+            
+            showBigPlayAlert('INTERCEPTED! 🚫', 'turnover-alert');
+            
+            setTimeout(() => {
+                showMessage('Turnover on Downs');
+                gameState.game.possession = 'opponent';
+                opponentPossession();
+            }, 2000);
+        }
+
+        // Pass to receiver
+        function passToReceiver(receiver) {
+            if (gameState.game.ballCarrier.type === 'QB') {
+                gameState.game.stats.attempts++;
+                
+                const difficulty = DIFFICULTY[gameState.difficulty];
+                const weatherPenalty = gameState.weather === 'Windy' ? -0.15 : 
+                                      gameState.weather === 'Rain' ? -0.1 : 0;
+                
+                const qbAccuracy = (gameState.game.ballCarrier.stats?.awareness || 75) / 100;
+                const wrHands = (receiver.stats?.hands || 80) / 100;
+                
+                const baseSuccess = gameState.game.selectedPlay.success + difficulty.successBonus + weatherPenalty;
+                const finalSuccess = baseSuccess * qbAccuracy * wrHands;
+                
+                if (Math.random() < difficulty.intChance && finalSuccess < 0.5) {
+                    causeInterception();
+                    return;
+                }
+                
+                const passSuccess = Math.random() < finalSuccess;
+                
+                if (passSuccess) {
+                    gameState.game.ballCarrier.hasBall = false;
+                    receiver.hasBall = true;
+                    gameState.game.ballCarrier = receiver;
+                    gameState.game.stats.completions++;
+                    gameState.game.lastPlayResult = 'completion';
+                    showMessage('Complete!');
+                    sounds.play('crowd', 1.2);
+                    sounds.crowdLevel = 0.8;
+                } else {
+                    gameState.game.lastPlayResult = 'incomplete';
+                    showMessage('Incomplete Pass');
+                    sounds.play('whistle');
+                    sounds.crowdLevel = 0.3;
+                    tacklePlay();
+                }
+            }
+        }
+
+        // Special moves
+        function useSpecialMove(type) {
+            if (gameState.player.stamina < 20) return false;
+            
+            const carrier = gameState.game.ballCarrier;
+            if (!carrier || carrier.team !== 'player') return false;
+            
+            let success = false;
+            const powerStat = (carrier.stats?.power || 75) / 75;
+            
+            switch(type) {
+                case 'juke':
+                    gameState.player.stamina -= 15;
+                    if (Math.random() < 0.7 * powerStat) {
+                        carrier.vx *= 1.5;
+                        carrier.vy *= 1.5;
+                        success = true;
+                        gameState.player.moveStats.jukes++;
+                        showMessage('Juke Move!');
+                        sounds.play('crowd', 1.1);
+                        sounds.crowdLevel = 0.7;
+                    }
+                    break;
+                case 'spin':
+                    gameState.player.stamina -= 20;
+                    if (Math.random() < 0.65 * powerStat) {
+                        const angle = Math.random() * Math.PI * 2;
+                        carrier.vx = Math.cos(angle) * 5;
+                        carrier.vy = Math.sin(angle) * 5;
+                        success = true;
+                        gameState.player.moveStats.spins++;
+                        showMessage('Spin Move!');
+                        sounds.play('crowd', 1.1);
+                        sounds.crowdLevel = 0.7;
+                    }
+                    break;
+                case 'burst':
+                    gameState.player.stamina -= 25;
+                    const speedStat = (carrier.stats?.speed || 80) / 80;
+                    if (Math.random() < 0.8 * speedStat) {
+                        carrier.vx *= 2;
+                        carrier.vy *= 2;
+                        success = true;
+                        gameState.player.moveStats.bursts++;
+                        showMessage('Speed Burst!');
+                        sounds.play('crowd', 1.2);
+                        sounds.crowdLevel = 0.75;
+                    }
+                    break;
+            }
+            
+            if (success) {
+                createParticles(carrier.x, carrier.y, 10, '#fbbf24');
+            }
+            
+            updateSpecialMoveButtons();
+            return success;
+        }
+
+        // Tackle - UPDATED with play clock logic
+        function tacklePlay() {
+            if (gameState.game.gamePhase === 'tackle') return;
+            
+            gameState.game.gamePhase = 'tackle';
+            sounds.play('tackle', 1.5);
+            hideSpecialMoveButtons();
+            hideControlsKey();
+            
+            // Calculate yards gained (horizontally now)
+            const fieldX = canvas.width * 0.1;
+            const fieldWidth = canvas.width * 0.8;
+            const lineOfScrimmage = fieldX + (fieldWidth * gameState.game.ballPosition / 100);
+            const endX = gameState.game.ballCarrier.x;
+            let yardsGained = Math.round((endX - lineOfScrimmage) / fieldWidth * 100);
+            
+            const play = gameState.game.selectedPlay;
+            const [minYards, maxYards] = play.yards;
+            yardsGained = Math.max(minYards, Math.min(maxYards, yardsGained));
+            
+            gameState.game.ballPosition += yardsGained;
+            gameState.game.yardsToGo -= yardsGained;
+            
+            // Update stats
+            if (play.type === 'pass') {
+                gameState.game.stats.passingYards += yardsGained;
+            } else {
+                gameState.game.stats.rushingYards += yardsGained;
+            }
+            gameState.game.stats.totalYards += yardsGained;
+            
+            // Determine if play clock should start next time
+            const lastResult = gameState.game.lastPlayResult;
+            const ranOutOfBounds = gameState.game.ballCarrier.y < canvas.height * 0.21 || 
+                                   gameState.game.ballCarrier.y > canvas.height * 0.79;
+            
+            if (lastResult === 'incomplete' || lastResult === 'turnover' || ranOutOfBounds) {
+                gameState.game.playClockShouldStart = false;
+            } else {
+                gameState.game.playClockShouldStart = true;
+            }
+            
+            // Check for first down
+            if (gameState.game.yardsToGo <= 0) {
+                gameState.game.down = 1;
+                gameState.game.yardsToGo = 10;
+                gameState.game.stats.firstDowns++;
+                showMessage(`First Down! ${yardsGained} yards`);
+                sounds.crowdLevel = 0.8;
+                sounds.play('crowd', 1.5);
+                showBigPlayAlert('FIRST DOWN! 🎯');
+            } else {
+                gameState.game.down++;
+                showMessage(`${yardsGained} yards`);
+            }
+            
+            // Check for turnover
+            if (gameState.game.down > 4) {
+                gameState.game.possession = 'opponent';
+                gameState.game.stats.turnovers++;
+                sounds.crowdLevel = 0.2;
+                showMessage('Turnover on Downs');
+                gameState.game.playClockShouldStart = false;
+                opponentPossession();
+            } else {
+                setTimeout(() => {
+                    if (gameState.game.playClockShouldStart) {
+                        startPlayClock();
+                    }
+                    gameState.mode = 'playSelect';
+                }, 2000);
+            }
+        }
+
+        // Score touchdown
+        function scoreTouchdown() {
+            gameState.game.gamePhase = 'tackle';
+            gameState.game.stats.touchdowns++;
+            hideSpecialMoveButtons();
+            hideControlsKey();
+            
+            showBigPlayAlert('TOUCHDOWN! 🏈🔥');
+            sounds.play('touchdown');
+            sounds.crowdLevel = 1.0;
+            
+            setTimeout(() => {
+                showInstantReplay();
+            }, 2000);
+            
+            setTimeout(() => {
+                gameState.game.needsKick = true;
+                gameState.game.kickPhase = 'extra_point';
+                gameState.mode = 'kicking';
+            }, 5000);
+        }
+
+        // Instant Replay
+        function showInstantReplay() {
+            if (gameState.game.replayData.length === 0) return;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'replay-overlay';
+            overlay.innerHTML = `
+                <div class="replay-title">⏮️ INSTANT REPLAY ⏭️</div>
+                <canvas id="replayCanvas" class="replay-video"></canvas>
+                <div style="color: white; margin-top: 15px;">
+                    <button class="action-button" onclick="closeReplay()">Continue</button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            
+            const replayCanvas = document.getElementById('replayCanvas');
+            const replayCtx = replayCanvas.getContext('2d');
+            replayCanvas.width = 600;
+            replayCanvas.height = 400;
+            
+            let frame = 0;
+            const replaySpeed = 0.5;
+            
+            const replayInterval = setInterval(() => {
+                if (frame >= gameState.game.replayData.length) {
+                    clearInterval(replayInterval);
+                    return;
+                }
+                
+                const frameData = gameState.game.replayData[Math.floor(frame)];
+                
+                replayCtx.fillStyle = '#1a3a0f';
+                replayCtx.fillRect(0, 0, 600, 400);
+                
+                const scale = 600 / canvas.width;
+                
+                frameData.players.forEach(player => {
+                    replayCtx.fillStyle = player.color;
+                    replayCtx.beginPath();
+                    replayCtx.arc(player.x * scale, player.y * scale, 10, 0, Math.PI * 2);
+                    replayCtx.fill();
+                    
+                    if (player.hasBall) {
+                        replayCtx.strokeStyle = '#FFD700';
+                        replayCtx.lineWidth = 3;
+                        replayCtx.stroke();
+                    }
+                    
+                    replayCtx.fillStyle = '#fff';
+                    replayCtx.font = '10px Arial';
+                    replayCtx.textAlign = 'center';
+                    replayCtx.fillText(player.number, player.x * scale, player.y * scale + 3);
+                });
+                
+                replayCtx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                replayCtx.font = 'bold 48px Arial';
+                replayCtx.textAlign = 'center';
+                replayCtx.fillText('REPLAY', 300, 50);
+                
+                frame += replaySpeed;
+            }, 16);
+        }
+
+        function closeReplay() {
+            const overlay = document.querySelector('.replay-overlay');
+            if (overlay) overlay.remove();
+        }
+
+        // Show big play alert
+        function showBigPlayAlert(text, className = '') {
+            const div = document.createElement('div');
+            div.className = 'big-play-alert ' + className;
+            div.textContent = text;
+            document.body.appendChild(div);
+            
+            createParticles(window.innerWidth / 2, window.innerHeight / 2, 30, '#fbbf24');
+            
+            setTimeout(() => {
+                div.remove();
+            }, 2000);
+        }
+
+        // Crowd meter
+        function updateCrowdMeter() {
+            let meter = document.querySelector('.crowd-meter');
+            if (!meter) {
+                meter = document.createElement('div');
+                meter.className = 'crowd-meter';
+                meter.innerHTML = '<div class="crowd-fill"></div><div style="color: white; font-size: 10px; text-align: center; margin-top: 5px;">CROWD</div>';
+                document.body.appendChild(meter);
+            }
+            
+            const fill = meter.querySelector('.crowd-fill');
+            fill.style.height = (sounds.crowdLevel * 100) + '%';
+        }
+
+        // Kicking mechanics
+        function startKick() {
+            gameState.game.kickPower = 0;
+            
+            const powerInterval = setInterval(() => {
+                gameState.game.kickPower += 2;
+                if (gameState.game.kickPower >= 100) {
+                    gameState.game.kickPower = 0;
+                }
+            }, 50);
+            
+            const kickHandler = (e) => {
+                if (e.key === ' ' || e.type === 'click') {
+                    clearInterval(powerInterval);
+                    document.removeEventListener('keydown', kickHandler);
+                    canvas.removeEventListener('click', kickHandler);
+                    
+                    const accuracy = 100 - Math.abs(50 - gameState.game.kickPower);
+                    const success = accuracy > 60 && Math.random() > 0.2;
+                    
+                    if (success) {
+                        if (gameState.game.kickPhase === 'extra_point') {
+                            gameState.game.playerScore += 1;
+                            showMessage('Extra Point Good! +1');
+                        } else if (gameState.game.kickPhase === 'field_goal') {
+                            gameState.game.playerScore += 3;
+                            showMessage('Field Goal Good! +3');
+                        } else if (gameState.game.kickPhase === 'kickoff') {
+                            const returnYards = Math.floor(Math.random() * 30) + 10;
+                            gameState.game.ballPosition = returnYards;
+                            showMessage(`Kickoff return to ${returnYards} yard line`);
+                        } else if (gameState.game.kickPhase === 'punt') {
+                            const puntYards = Math.floor(Math.random() * 30) + 30;
+                            gameState.game.ballPosition = 100 - (100 - gameState.game.ballPosition - puntYards);
+                            showMessage(`Punt ${puntYards} yards`);
+                        }
+                        sounds.play('kick');
+                        sounds.play('crowd', 1.3);
+                    } else {
+                        showMessage('Kick Missed!');
+                        sounds.play('whistle');
+                    }
+                    
+                    setTimeout(() => {
+                        if (gameState.game.kickPhase === 'extra_point') {
+                            gameState.game.playerScore += 6;
+                        }
+                        
+                        gameState.game.needsKick = false;
+                        gameState.game.kickPhase = null;
+                        
+                        if (gameState.game.kickPhase !== 'kickoff') {
+                            gameState.game.possession = 'opponent';
+                            gameState.game.playClockShouldStart = false;
+                            opponentPossession();
+                        } else {
+                            gameState.game.possession = 'player';
+                            gameState.game.playClockShouldStart = false;
+                            gameState.mode = 'playSelect';
+                        }
+                    }, 2000);
+                }
+            };
+            
+            document.addEventListener('keydown', kickHandler);
+            canvas.addEventListener('click', kickHandler);
+        }
+
+        // Opponent possession with defensive play calling
+        function opponentPossession() {
+            gameState.mode = 'defensiveSelect';
+            showDefensiveSelect();
+        }
+
+        // Execute defense
+        function executeDefense() {
+            const playTypes = ['run', 'pass'];
+            const selectedType = playTypes[Math.floor(Math.random() * 2)];
+            const opponentPlays = PLAYS[selectedType];
+            gameState.game.opponentPlay = opponentPlays[Math.floor(Math.random() * opponentPlays.length)];
+            
+            const defensivePlay = gameState.game.defensivePlay;
+            const opponentPlay = gameState.game.opponentPlay;
+            
+            const defenseEffectiveness = opponentPlay.type === 'run' ? 
+                defensivePlay.vsRun : defensivePlay.vsPass;
+            
+            const difficulty = DIFFICULTY[gameState.difficulty];
+            const opponentSkill = (gameState.game.opponent.rating - 70) / 100;
+            
+            let yardsGained;
+            const stopChance = defenseEffectiveness * (1 - opponentSkill) * (1.2 - difficulty.successBonus);
+            
+            if (Math.random() < stopChance) {
+                yardsGained = Math.floor(Math.random() * 3) - 1;
+                showMessage(`🛡️ Great Defense! ${yardsGained} yards`);
+                sounds.play('crowd', 1.5);
+                sounds.crowdLevel = 0.9;
+                createParticles(canvas.width / 2, canvas.height / 2, 15, '#10b981');
+                
+                if (yardsGained < 0) {
+                    showBigPlayAlert('SACK! 💥');
+                }
+            } else {
+                const [minYards, maxYards] = opponentPlay.yards;
+                yardsGained = Math.floor(Math.random() * (maxYards - minYards + 1)) + minYards;
+                yardsGained = Math.floor(yardsGained * opponentSkill);
+                showMessage(`Opponent gains ${yardsGained} yards`);
+                sounds.play('tackle', 0.8);
+                sounds.crowdLevel = 0.3;
+            }
+            
+            let opponentDrive = gameState.game.opponentDrive || {
+                down: 1,
+                yardsToGo: 10,
+                fieldPosition: 25,
+                plays: 0
+            };
+            
+            opponentDrive.yardsToGo -= yardsGained;
+            opponentDrive.fieldPosition += yardsGained;
+            opponentDrive.plays++;
+            
+            if (opponentDrive.yardsToGo <= 0) {
+                opponentDrive.down = 1;
+                opponentDrive.yardsToGo = 10;
+                showMessage('🚨 Opponent First Down');
+            } else {
+                opponentDrive.down++;
+            }
+            
+            if (opponentDrive.fieldPosition >= 100) {
+                gameState.game.opponentScore += 7;
+                showMessage('💔 Opponent Touchdown');
+                sounds.play('whistle');
+                sounds.crowdLevel = 0.1;
+                showBigPlayAlert('OPPONENT TD 💔', 'turnover-alert');
+                
+                setTimeout(() => {
+                    gameState.game.ballPosition = 25;
+                    gameState.game.down = 1;
+                    gameState.game.yardsToGo = 10;
+                    gameState.game.possession = 'player';
+                    gameState.game.opponentDrive = null;
+                    gameState.game.playClockShouldStart = false;
+                    
+                    updateGameClock();
+                }, 3000);
+                return;
+            }
+            
+            if (opponentDrive.down > 4) {
+                showMessage('✅ Turnover on Downs!');
+                sounds.play('crowd', 1.8);
+                sounds.crowdLevel = 0.95;
+                showBigPlayAlert('DEFENSE STOPS! 🛡️');
+                
+                setTimeout(() => {
+                    gameState.game.ballPosition = 100 - opponentDrive.fieldPosition;
+                    gameState.game.down = 1;
+                    gameState.game.yardsToGo = 10;
+                    gameState.game.possession = 'player';
+                    gameState.game.opponentDrive = null;
+                    gameState.game.playClockShouldStart = false;
+                    
+                    updateGameClock();
+                }, 3000);
+                return;
+            }
+            
+            gameState.game.opponentDrive = opponentDrive;
+            
+            setTimeout(() => {
+                updateGameClock();
+                
+                if (opponentDrive.down === 4 && opponentDrive.fieldPosition > 50) {
+                    if (Math.random() < 0.7) {
+                        const puntYards = Math.floor(Math.random() * 30) + 30;
+                        gameState.game.ballPosition = Math.max(5, 100 - opponentDrive.fieldPosition - puntYards);
+                        showMessage(`Opponent punts ${puntYards} yards`);
+                        sounds.play('kick');
+                        
+                        setTimeout(() => {
+                            gameState.game.down = 1;
+                            gameState.game.yardsToGo = 10;
+                            gameState.game.possession = 'player';
+                            gameState.game.opponentDrive = null;
+                            gameState.game.playClockShouldStart = false;
+                            gameState.mode = 'playSelect';
+                        }, 2000);
+                        return;
+                    }
+                }
+                
+                gameState.mode = 'defensiveSelect';
+                showDefensiveSelect();
+            }, 2500);
+        }
+
+        // Update game clock
+        function updateGameClock() {
+            gameState.game.timeLeft -= Math.floor(Math.random() * 60) + 30;
+            
+            if (gameState.game.timeLeft <= 0) {
+                gameState.game.quarter++;
+                gameState.game.timeLeft = 900;
+                
+                if (gameState.game.quarter > 4) {
+                    if (gameState.game.playerScore === gameState.game.opponentScore) {
+                        startOvertime();
+                    } else {
+                        endGame();
+                    }
+                } else {
+                    showMessage(`End of Quarter ${gameState.game.quarter - 1}`);
+                    setTimeout(() => {
+                        gameState.mode = 'playSelect';
+                    }, 2000);
+                }
+            } else {
+                gameState.mode = 'playSelect';
+            }
+        }
+
+        // Overtime
+        function startOvertime() {
+            gameState.game.overtime = true;
+            gameState.game.quarter = 5;
+            gameState.game.timeLeft = 600;
+            showMessage('🔥 OVERTIME! First to score wins!');
+            
+            setTimeout(() => {
+                showCoinToss(gameState.game.opponent);
+            }, 2000);
+        }
+
+        // End game
+        function endGame() {
+            const won = gameState.game.playerScore > gameState.game.opponentScore;
+            
+            if (won) {
+                gameState.season.playerRecord.wins++;
+                sounds.play('touchdown');
+                sounds.crowdLevel = 1.0;
+            } else {
+                gameState.season.playerRecord.losses++;
+                sounds.play('whistle');
+                sounds.crowdLevel = 0.2;
+            }
+            
+            const gameIdx = gameState.season.schedule.findIndex(g => 
+                g.week === gameState.season.week && g.opponent.id === gameState.game.opponent.id
+            );
+            if (gameIdx !== -1) {
+                gameState.season.schedule[gameIdx].played = true;
+                gameState.season.schedule[gameIdx].won = won;
+            }
+            
+            gameState.mode = 'gameOver';
+            showGameOver();
+            saveGame();
+        }
+
+        // Show Controls Key - UPDATED
+        function showControlsKey() {
+            if (document.querySelector('.controls-key')) return;
+            
+            const key = document.createElement('div');
+            key.className = 'controls-key';
+            key.innerHTML = `
+                <h4>Controls</h4>
+                <div class="control-item">
+                    <span class="control-key">WASD / ↑←↓→</span>
+                    <span class="control-action">Move</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">Q</span>
+                    <span class="control-action">Juke</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">E</span>
+                    <span class="control-action">Spin</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">R</span>
+                    <span class="control-action">Burst</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">Click WR</span>
+                    <span class="control-action">Pass</span>
+                </div>
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #3b82f6; color: #fbbf24; font-size: 11px;">
+                    <strong>Touchdown:</strong> Ball crosses goal line (right edge)
+                </div>
+            `;
+            document.body.appendChild(key);
+        }
+
+        function hideControlsKey() {
+            const key = document.querySelector('.controls-key');
+            if (key) key.remove();
+        }
+
+        // Show Special Move Buttons
+        function showSpecialMoveButtons() {
+            if (document.querySelector('.special-moves')) return;
+            
+            const container = document.createElement('div');
+            container.className = 'special-moves';
+            
+            const moves = [
+                { key: 'Q', name: 'Juke', type: 'juke' },
+                { key: 'E', name: 'Spin', type: 'spin' },
+                { key: 'R', name: 'Burst', type: 'burst' }
+            ];
+            
+            moves.forEach(move => {
+                const button = document.createElement('button');
+                button.className = 'move-button';
+                button.innerHTML = `<div>${move.key}</div><div>${move.name}</div>`;
+                button.onclick = () => useSpecialMove(move.type);
+                button.id = `move-${move.type}`;
+                container.appendChild(button);
+            });
+            
+            document.body.appendChild(container);
+            updateSpecialMoveButtons();
+        }
+
+        function hideSpecialMoveButtons() {
+            const container = document.querySelector('.special-moves');
+            if (container) container.remove();
+        }
+
+        function updateSpecialMoveButtons() {
+            ['juke', 'spin', 'burst'].forEach(type => {
+                const button = document.getElementById(`move-${type}`);
+                if (button) {
+                    button.disabled = gameState.player.stamina < 20;
+                }
+            });
+        }
+
+        // Show message
+        function showMessage(text) {
+            const existing = document.querySelector('.game-message');
+            if (existing) existing.remove();
+            
+            const msg = document.createElement('div');
+            msg.className = 'game-message';
+            msg.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.9);
+                color: white;
+                padding: 15px 30px;
+                border-radius: 12px;
+                font-size: 18px;
+                font-weight: bold;
+                z-index: 1100;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                border: 2px solid #fbbf24;
+                animation: fadeIn 0.3s ease;
+            `;
+            msg.textContent = text;
+            document.body.appendChild(msg);
+            
+            setTimeout(() => {
+                msg.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => msg.remove(), 300);
+            }, 2000);
+        }
+
+        // Input event handlers - UPDATED FOR HIKE DETECTION
+        document.addEventListener('keydown', (e) => {
+            // Check for hike triggers first
+            if (checkHikeTriggers(e)) return;
+            
+            gameState.input.keys[e.key] = true;
+            
+            if (gameState.mode === 'playing') {
+                // Special moves
+                if (e.key === 'q' || e.key === 'Q') {
+                    useSpecialMove('juke');
+                } else if (e.key === 'e' || e.key === 'E') {
+                    useSpecialMove('spin');
+                } else if (e.key === 'r' || e.key === 'R') {
+                    useSpecialMove('burst');
+                }
+                
+                // Pass to target receiver
+                if ((e.key === 'f' || e.key === 'F') && gameState.game.selectedPlay?.type === 'pass') {
+                    const target = gameState.game.players.find(p => p.isTarget && !p.hasBall);
+                    if (target) {
+                        passToReceiver(target);
+                    }
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            gameState.input.keys[e.key] = false;
+        });
+
+        // Mouse/touch handlers - UPDATED FOR RIGHT-CLICK HIKE
+        canvas.addEventListener('contextmenu', (e) => {
+            checkHikeTriggers(e);
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            gameState.input.mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+            gameState.input.mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+            
+            if (gameState.mode === 'playing' && gameState.game.selectedPlay?.type === 'pass') {
+                // Check if clicked on a receiver
+                const receiver = gameState.game.players.find(p => {
+                    if (p.team !== 'player' || p.hasBall) return false;
+                    const dx = p.x - gameState.input.mouseX;
+                    const dy = p.y - gameState.input.mouseY;
+                    return Math.sqrt(dx * dx + dy * dy) < 25;
+                });
+                
+                if (receiver) {
+                    passToReceiver(receiver);
+                }
+            }
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            gameState.input.touching = true;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            gameState.input.mouseX = (touch.clientX - rect.left) * (canvas.width / rect.width);
+            gameState.input.mouseY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            gameState.input.mouseX = (touch.clientX - rect.left) * (canvas.width / rect.width);
+            gameState.input.mouseY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            gameState.input.touching = false;
+        });
+
+        // Render function
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw field
+            ctx.fillStyle = '#2d5016';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw yard lines horizontally
+            const fieldX = canvas.width * 0.1;
+            const fieldWidth = canvas.width * 0.8;
+            const fieldY = canvas.height * 0.2;
+            const fieldHeight = canvas.height * 0.6;
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            
+            // Draw horizontal yard lines (every 10 yards)
+            for (let i = 0; i <= 100; i += 10) {
+                const x = fieldX + (fieldWidth * i / 100);
+                ctx.beginPath();
+                ctx.moveTo(x, fieldY);
+                ctx.lineTo(x, fieldY + fieldHeight);
+                ctx.stroke();
+                
+                // Yard numbers
+                if (i > 0 && i < 100) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.font = '16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(i, x, fieldY - 10);
+                }
+            }
+            
+            // Draw players
+            if (gameState.mode === 'playing') {
+                gameState.game.players.forEach(player => {
+                    // Player circle
+                    ctx.fillStyle = player.color;
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Ball carrier highlight
+                    if (player.hasBall) {
+                        ctx.strokeStyle = '#FFD700';
+                        ctx.lineWidth = 4;
+                        ctx.stroke();
+                    }
+                    
+                    // Target highlight
+                    if (player.isTarget) {
+                        ctx.strokeStyle = '#fbbf24';
+                        ctx.lineWidth = 3;
+                        ctx.setLineDash([5, 5]);
+                        ctx.beginPath();
+                        ctx.arc(player.x, player.y, 18, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                    
+                    // Jersey number
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(player.number, player.x, player.y + 4);
+                });
+            }
+            
+            // Draw game info
+            if (gameState.game.opponent) {
+                // Score
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.fillRect(canvas.width / 2 - 150, 10, 300, 60);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${gameState.season.playerTeam.abbreviation} ${gameState.game.playerScore} - ${gameState.game.opponentScore} ${gameState.game.opponent.abbreviation}`, canvas.width / 2, 40);
+                
+                // Down and distance
+                ctx.font = '16px Arial';
+                ctx.fillText(`Q${gameState.game.quarter} - ${Math.floor(gameState.game.timeLeft / 60)}:${(gameState.game.timeLeft % 60).toString().padStart(2, '0')}`, canvas.width / 2, 60);
+                
+                if (gameState.mode !== 'defensiveSelect' && gameState.game.possession === 'player') {
+                    ctx.fillText(`${ordinal(gameState.game.down)} & ${gameState.game.yardsToGo} at ${Math.round(gameState.game.ballPosition)}`, canvas.width / 2, 80);
+                }
+                
+                // Stamina bar
+                if (gameState.mode === 'playing') {
+                    const barWidth = 200;
+                    const barHeight = 20;
+                    const barX = canvas.width / 2 - barWidth / 2;
+                    const barY = canvas.height - 30;
+                    
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillRect(barX, barY, barWidth, barHeight);
+                    
+                    ctx.fillStyle = gameState.player.stamina > 50 ? '#10b981' : 
+                                   gameState.player.stamina > 25 ? '#f59e0b' : '#ef4444';
+                    ctx.fillRect(barX, barY, barWidth * (gameState.player.stamina / 100), barHeight);
+                    
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(barX, barY, barWidth, barHeight);
+                    
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('STAMINA', canvas.width / 2, barY - 5);
+                }
+            }
+        }
+
+        // Ordinal helper
+        function ordinal(n) {
+            const s = ["th", "st", "nd", "rd"];
+            const v = n % 100;
+            return n + (s[(v - 20) % 10] || s[v] || s[0]);
+        }
+
+        // Game loop
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            const deltaTime = timestamp - lastTime || 16;
+            lastTime = timestamp;
+            
+            if (gameState.mode === 'playing') {
+                updateGameplay(deltaTime);
+            }
+            
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start game loop
+        gameLoop(0);
+
+        // Show main menu
+        function showMainMenu() {
+            const overlay = document.createElement('div');
+            overlay.className = 'ui-overlay';
+            overlay.innerHTML = `
+                <div class="ui-panel">
+                    <div class="ui-title">🏈 NFL PRO SEASON 🏈</div>
+                    <div style="text-align: center; color: white; margin-bottom: 30px;">
+                        <p style="font-size: 18px; margin-bottom: 15px;">Experience the ultimate NFL simulation!</p>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 15px; max-width: 400px; margin: 0 auto;">
+                        <button class="action-button" onclick="showDifficultySelect()" style="font-size: 20px;">
+                            🎮 New Season
+                        </button>
+                        <button class="action-button secondary" onclick="loadSavedGame()" style="font-size: 18px;">
+                            📁 Continue
+                        </button>
+                        <button class="action-button secondary" onclick="showHowToPlay()" style="font-size: 18px;">
+                            ℹ️ How to Play
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        // Show How to Play - UPDATED
+        function showHowToPlay() {
+            document.querySelector('.ui-overlay').remove();
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'ui-overlay';
+            overlay.innerHTML = `
+                <div class="ui-panel" style="max-width: 800px;">
+                    <div class="ui-title">📖 How to Play</div>
+                    <div style="color: white; font-size: 16px; line-height: 1.8;">
+                        <h3 style="color: #fbbf24; margin-top: 20px;">Game Basics</h3>
+                        <ul style="margin-left: 20px;">
+                            <li>Choose your favorite NFL team and compete through a season</li>
+                            <li>Select offensive and defensive plays strategically</li>
+                            <li>Control your player to score touchdowns</li>
+                        </ul>
+                        
+                        <h3 style="color: #fbbf24; margin-top: 20px;">Hiking the Ball</h3>
+                        <ul style="margin-left: 20px;">
+                            <li><strong>📱 Touchscreen:</strong> Press any movement button to hike</li>
+                            <li><strong>⌨️ Keyboard:</strong> Press SPACEBAR to hike</li>
+                            <li><strong>🖱️ Mouse:</strong> Right-click on the field to hike</li>
+                        </ul>
+                        
+                        <h3 style="color: #fbbf24; margin-top: 20px;">During Gameplay</h3>
+                        <ul style="margin-left: 20px;">
+                            <li><strong>Movement:</strong> WASD or Arrow Keys</li>
+                            <li><strong>Special Moves:</strong> Q (Juke), E (Spin), R (Burst)</li>
+                            <li><strong>Pass:</strong> Click on a receiver or press F to pass to target</li>
+                            <li><strong>Touchdown:</strong> Cross the goal line (right edge of field)</li>
+                        </ul>
+                        
+                        <h3 style="color: #fbbf24; margin-top: 20px;">Scoring</h3>
+                        <ul style="margin-left: 20px;">
+                            <li><strong>Touchdown:</strong> When the ball crosses the goal line = 6 points + 1 point extra</li>
+                            <li><strong>Field Goal:</strong> 3 points</li>
+                            <li>Win games to advance through your season!</li>
+                        </ul>
+                        
+                        <h3 style="color: #fbbf24; margin-top: 20px;">Play Clock</h3>
+                        <ul style="margin-left: 20px;">
+                            <li>Play clock starts AFTER completed plays</li>
+                            <li>Clock does NOT start after: incomplete passes, out of bounds, turnovers</li>
+                            <li>Select your play before time runs out!</li>
+                        </ul>
+                    </div>
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button class="action-button" onclick="showMainMenu()">Back to Menu</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        // Show Difficulty Select
+        function showDifficultySelect() {
+            document.querySelector('.ui-overlay').remove();
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'ui-overlay';
+            overlay.innerHTML = `
+                <div class="ui-panel">
+                    <div class="ui-title">Select Difficulty</div>
+                    <div class="difficulty-select">
+                        <button class="difficulty-button rookie" onclick="selectDifficulty('rookie')">
+                            🟢 Rookie<br><span style="font-size: 14px; opacity: 0.8;">Easier defenders, more success</span>
+                        </button>
+                        <button class="difficulty-button pro" onclick="selectDifficulty('pro')">
+                            🔵 Pro<br><span style="font-size: 14px; opacity: 0.8;">Balanced gameplay</span>
+                        </button>
+                        <button class="difficulty-button allpro" onclick="selectDifficulty('allpro')">
+                            🟡 All-Pro<br><span style="font-size: 14px; opacity: 0.8;">Faster defenders, harder plays</span>
+                        </button>
+                        <button class="difficulty-button legend" onclick="selectDifficulty('legend')">
+                            🔴 Legend<br><span style="font-size: 14px; opacity: 0.8;">Maximum challenge</span>
+                        </button>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="action-button secondary" onclick="showMainMenu()">Back</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function selectDifficulty(diff) {
+            gameState.difficulty = diff;
+            showTeamSelect();
+        }
+
+        // Show Team Select
+        async function showTeamSelect() {
+            document.querySelector('.ui-overlay').remove();
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'ui-overlay';
+            overlay.innerHTML = `
+                <div class="ui-panel" style="max-width: 1000px;">
+                    <div class="ui-title">Select Your Team</div>
+                    <div class="loading">Loading NFL Teams</div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            
+            await loadNFLTeams();
+            
+            const panel = overlay.querySelector('.ui-panel');
+            panel.innerHTML = `
+                <div class="ui-title">Select Your Team</div>
+                <div class="team-select">
+                    ${gameState.nflTeams.map((team, idx) => `
+                        <div class="team-card" onclick="selectTeam(${idx})">
+                            <div class="team-name">${team.name}</div>
+                            <div class="team-record">Rating: ${team.rating}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="action-button secondary" onclick="showDifficultySelect()">Back</button>
+                </div>
+            `;
+        }
+
+        async function selectTeam(idx) {
+            document.querySelector('.ui-overlay').remove();
+            await initializeSeason(idx);
+            showSeasonOverview();
+        }
+
+        // Show Season Overview
+        function showSeasonOverview() {
+            const overlay = document.createElement('div');
+            overlay.className = 'ui-overlay';
+            
+            const team = gameState.season.playerTeam;
+            const schedule = gameState.season.schedule;
+            
+            overlay.innerHTML = `
+                <div class="ui-panel">
+                    <div class="ui-title">${team.name} - Week ${gameState.season.week}</div>
+                    <div class="game-info">
+                        <div style="font-size: 20px; font-weight: bold; margin-bottom: 10px;">
+                            Record: ${gameState.season.playerRecord.wins}-${gameState.season.playerRecord.losses}
+                        </div>
+                    </div>
+                    <div style="color: white; margin: 20px 0;">
+                        <h3 style="color: #3b82f6; margin-bottom: 15px;">Season Schedule</h3>
+                        ${schedule.map(game => `
+                            <div style="padding: 10px; background: rgba(255,255,255,0.1); margin: 5px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Week ${game.week}: vs ${game.opponent.name}</span>
+                                <span>${game.played ? (game.won ? '✅ Won' : '❌ Lost') : 
+                                    (game.week === gameState.season.week ? 
+                                        `<button class="action-button" onclick="startGameFromSeason(${game.week})" style="padding: 8px 20px; margin: 0;">Play</button>` : 
+                                        '⏳ Upcoming')}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${gameState.season.week > 7 ? `
+                        <button class="action-button" onclick="showSeasonResults()" style="margin-top: 20px;">
+                            View Season Results
+                        </button>
+                    ` : ''}
+                    <button class="action-button secondary" onclick="showMainMenu()" style="margin-top: 10px;">
+                        Main Menu
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        async function startGameFromSeason(week) {
+            document.querySelector('.ui-overlay').remove();
+            const game = gameState.season.schedule.find(g => g.week === week);
+            if (game && !game.played) {
+                await startGame(game.opponent);
+            }
+        }
+
+        // Show Play Select
+        function showPlaySelect() {
+            stopPlayClock();
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'ui-overlay';
+            
+            overlay.innerHTML = `
+                <div class="ui-panel">
+                    <div class="ui-title">Select Play</div>
+                    <div class="game-info">
+                        <strong>${ordinal(gameState.game.down)} & ${gameState.game.yardsToGo}</strong> at ${Math.round(gameState.game.ballPosition)} yard line
+                    </div>
+                    
+                    <div class="tab-buttons">
+                        <button class="tab-button active" onclick="switchPlayTab('run')">🏃 Run Plays</button>
+                        <button class="tab-button" onclick="switchPlayTab('pass')">🎯 Pass Plays</button>
+                        <button class="tab-button" onclick="switchPlayTab('special')">⭐ Special</button>
+                    </div>
+                    
+                    <div id="run-plays" class="play-grid">
+                        ${PLAYS.run.map((play, idx) => `
+                            <button class="play-button run" onclick="selectOffensivePlay('run', ${idx})">
+                                <div style="font-size: 24px; margin-bottom: 5px;">${play.icon}</div>
+                                <div>${play.name}</div>
+                                <div style="font-size: 11px; opacity: 0.8; margin-top: 5px;">${play.yards[0]}-${play.yards[1]} yds</div>
+                                ${play.target ? `<span class="target-indicator">${play.target}</span>` : ''}
+                            </button>
+                        `).join('')}
+                    </div>
+                    
+                    <div id="pass-plays" class="play-grid" style="display: none;">
+                        ${PLAYS.pass.map((play, idx) => `
+                            <button class="play-button pass" onclick="selectOffensivePlay('pass', ${idx})">
+                                <div style="font-size: 24px; margin-bottom: 5px;">${play.icon}</div>
+                                <div>${play.name}</div>
+                                <div style="font-size: 11px; opacity: 0.8; margin-top: 5px;">${play.yards[0]}-${play.yards[1]} yds</div>
+                                ${play.target ? `<span class="target-indicator">${play.target}</span>` : ''}
+                            </button>
+                        `).join('')}
+                    </div>
+                    
+                    <div id="special-plays" style="display: none;">
+                        <div class="play-grid">
+                            ${gameState.game.canHardCount ? `
+                                <button class="play-button special hard-count" onclick="tryHardCount()">
+                                    🎭 Hard Count<br>
+                                    <span style="font-size: 11px;">Try to draw offsides</span>
+                                </button>
+                            ` : ''}
+                            ${gameState.game.down === 4 ? `
+                                <button class="play-button special" onclick="attemptFieldGoal()">
+                                    🎯 Field Goal
+                                </button>
+                                <button class="play-button special" onclick="attemptPunt()">
+                                    🦵 Punt
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function switchPlayTab(tab) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('run-plays').style.display = tab === 'run' ? 'grid' : 'none';
+            document.getElementById('pass-plays').style.display = tab === 'pass' ? 'grid' : 'none';
+            document.getElementById('special-plays').style.display = tab === 'special' ? 'block' : 'none';
+        }
+
+        function selectOffensivePlay(type, idx) {
+            const play = PLAYS[type][idx];
+            gameState.game.selectedPlay = play;
+            document.querySelector('.ui-overlay').remove();
+            showFormationOverlay(play);
+        }
+
+        function attemptFieldGoal() {
+            document.querySelector('.ui-overlay').remove();
+            gameState.game.kickPhase = 'field_goal';
+            gameState.mode = 'kicking';
+            startKick();
+        }
+
+        function attemptPunt() {
+            document.querySelector('.ui-overlay').remove();
+            gameState.game.kickPhase = 'punt';
+            gameState.mode = 'kicking';
+            startKick();
+        }
+
+        // Show Defensive Select
+        function showDefensiveSelect() {
+            const overlay = document.createElement('div');
+            overlay.className = 'ui-overlay';
+            
+            const drive = gameState.game.opponentDrive || { down: 1, yardsToGo: 10, fieldPosition: 25 };
+            
+            overlay.innerHTML = `
+                <div class="ui-panel">
+                    <div class="ui-title">🛡️ Select Defense</div>
+                    <div class="game-info">
+                        <strong>Opponent:</strong> ${ordinal(drive.down)} & ${drive.yardsToGo} at ${Math.round(drive.fieldPosition)} yard line
+                    </div>
+                    
+                    <div class="tab-buttons">
+                        <button class="tab-button active" onclick="switchDefenseTab('coverage')">🛡️ Coverage</button>
+                        <button class="tab-button" onclick="switchDefenseTab('pressure')">⚡ Pressure</button>
+                    </div>
+                    
+                    <div id="coverage-plays" class="play-grid">
+                        ${DEFENSIVE_PLAYS.coverage.map((play, idx) => `
+                            <button class="play-button defense-coverage" onclick="selectDefensivePlay('coverage', ${idx})">
+                                <div style="font-size: 24px; margin-bottom: 5px;">${play.icon}</div>
+                                <div>${play.name}</div>
+                                <div style="font-size: 11px; opacity: 0.8; margin-top: 5px;">${play.description}</div>
+                            </button>
+                        `).join('')}
+                    </div>
+                    
+                    <div id="pressure-plays" class="play-grid" style="display: none;">
+                        ${DEFENSIVE_PLAYS.pressure.map((play, idx) => `
+                            <button class="play-button defense-pressure" onclick="selectDefensivePlay('pressure', ${idx})">
+                                <div style="font-size: 24px; margin-bottom: 5px;">${play.icon}</div>
+                                <div>${play.name}</div>
+                                <div style="font-size: 11px; opacity: 0.8; margin-top: 5px;">${play.description}</div>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function switchDefenseTab(tab) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('coverage-plays').style.display = tab === 'coverage' ? 'grid' : 'none';
+            document.getElementById('pressure-plays').style.display = tab === 'pressure' ? 'grid' : 'none';
+        }
+
+        function selectDefensivePlay(type, idx) {
+            const play = DEFENSIVE_PLAYS[type][idx];
+            gameState.game.defensivePlay = play;
+            document.querySelector('.ui-overlay').remove();
+            executeDefense();
+        }
+
+        // Show Game Over
+        function showGameOver() {
+            const overlay = document.createElement('div');
+            overlay.className = 'ui-overlay';
+            
+            const won = gameState.game.playerScore > gameState.game.opponentScore;
+            
+            overlay.innerHTML = `
+                <div class="ui-panel">
+                    <div class="ui-title" style="color: ${won ? '#10b981' : '#ef4444'};">
+                        ${won ? '🎉 VICTORY! 🎉' : '😔 DEFEAT'}
+                    </div>
+                    <div class="game-info" style="font-size: 32px; margin: 30px 0;">
+                        ${gameState.season.playerTeam.name} ${gameState.game.playerScore}<br>
+                        ${gameState.game.opponent.name} ${gameState.game.opponentScore}
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Yards</div>
+                            <div class="stat-value">${gameState.game.stats.totalYards}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Touchdowns</div>
+                            <div class="stat-value">${gameState.game.stats.touchdowns}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">First Downs</div>
+                            <div class="stat-value">${gameState.game.stats.firstDowns}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Turnovers</div>
+                            <div class="stat-value">${gameState.game.stats.turnovers}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Passing</div>
+                            <div class="stat-value">${gameState.game.stats.passingYards}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Rushing</div>
+                            <div class="stat-value">${gameState.game.stats.rushingYards}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <div style="color: white; font-size: 18px; margin-bottom: 20px;">
+                            Season Record: ${gameState.season.playerRecord.wins}-${gameState.season.playerRecord.losses}
+                        </div>
+                        <button class="action-button" onclick="continueToNextGame()">
+                            ${gameState.season.week < 7 ? 'Continue Season' : 'View Final Results'}
+                        </button>
+                        <button class="action-button secondary" onclick="showMainMenu()">
+                            Main Menu
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function continueToNextGame() {
+            document.querySelector('.ui-overlay').remove();
+            
+            if (gameState.season.week >= 7) {
+                showSeasonResults();
+            } else {
+                gameState.season.week++;
+                saveGame();
+                showSeasonOverview();
+            }
+        }
+
+        // Show Season Results
+        function showSeasonResults() {
+            const overlay = document.createElement('div');
+            overlay.className = 'ui-overlay';
+            
+            overlay.innerHTML = `
+                <div class="ui-panel">
+                    <div class="ui-title">🏆 Season Complete! 🏆</div>
+                    <div class="game-info" style="font-size: 32px; margin: 30px 0;">
+                        Final Record: ${gameState.season.playerRecord.wins}-${gameState.season.playerRecord.losses}
+                    </div>
+                    
+                    <div style="color: white; margin: 20px 0;">
+                        ${gameState.season.schedule.map(game => `
+                            <div style="padding: 10px; background: rgba(255,255,255,0.1); margin: 5px 0; border-radius: 8px;">
+                                Week ${game.week}: vs ${game.opponent.name} - ${game.won ? '✅ Won' : '❌ Lost'}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button class="action-button" onclick="showMainMenu()">
+                            Return to Menu
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        // Save/Load Game
+        function saveGame() {
+            try {
+                localStorage.setItem('nflGameSave', JSON.stringify({
+                    difficulty: gameState.difficulty,
+                    season: gameState.season
+                }));
+            } catch (e) {
+                console.log('Could not save game:', e);
+            }
+        }
+
+        function loadSavedGame() {
+            try {
+                const save = localStorage.getItem('nflGameSave');
+                if (save) {
+                    const data = JSON.parse(save);
+                    gameState.difficulty = data.difficulty;
+                    gameState.season = data.season;
+                    gameState.mode = 'season';
+                    document.querySelector('.ui-overlay').remove();
+                    showSeasonOverview();
+                } else {
+                    showMessage('No saved game found');
+                }
+            } catch (e) {
+                console.log('Could not load game:', e);
+                showMessage('Error loading game');
+            }
+        }
+
+        // Mode management
+        setInterval(() => {
+            if (gameState.mode === 'playSelect') {
+                if (!document.querySelector('.ui-overlay')) {
+                    showPlaySelect();
+                }
+            } else if (gameState.mode === 'kicking') {
+                if (!gameState.game.kickPhase) {
+                    gameState.mode = 'playSelect';
+                }
+            }
+        }, 100);
+
+        // Initialize
+        showMainMenu();
+    </script>
+</body>
+</html>
